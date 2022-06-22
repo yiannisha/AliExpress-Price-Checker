@@ -13,6 +13,7 @@ from selenium.webdriver.common.keys import Keys
 # exceptions
 from scraper.exceptions import *
 from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import ElementNotInteractableException
 
 # typedef
 ChromeWebdriver: webdriver.chrome.webdriver.WebDriver
@@ -79,8 +80,8 @@ class Scraper:
             self.setUpCountry(driver, country)
 
         # set up currency
-        # if currency:
-            # self.setUpCurrency(driver, currency)
+        if currency:
+            self.setUpCurrency(driver, currency)
 
         # save and close setttings menu
         if country or currency:
@@ -118,7 +119,8 @@ class Scraper:
                         elem.click()
                     except NoSuchElementException:
                         sys.stderr.write(f'{key.capitalize()} Popup not found in startup. Retry {i+1}\n')
-                # raise custom navigation exception
+
+                raise InvalidClassNameNavigationException(className=value, elementName=f'{key} popup')
 
     def setUpCountry (self, driver: ChromeWebdriver, country: str) -> None:
         """
@@ -173,7 +175,68 @@ class Scraper:
 
             except NoSuchElementException:
                 # raise InvalidCountryException because there are no results
-                raise InvalidCountryException(f'No such country as {country}')
+                raise InvalidCountryException(country)
+                # end loop after it checks all list elements
+                break
+
+            enum += 1
+
+    def setUpCurrency (self, driver: ChromeWebdriver, currency: str) -> None:
+        """
+        Sets up the currency. Assumes that the settings menu is already open.
+        Raises InvalidCurrencyException if invalid currency is passed.
+
+        :param driver: driver at https://www.aliexpress.com ready for country set up
+        :param currency: currency to set shipment to (i.e. 'eur', 'USD', 'hKd')
+        """
+
+        list_dropdown_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[3]/div/span'
+
+        # click list dropdown
+        try:
+            driver.find_element(By.XPATH, list_dropdown_xpath).click()
+        except NoSuchElementException:
+            raise InvalidXpathNavigationException(xpath=list_dropdown_xpath, elementName='currency list dropdown')
+
+        # click and insert in input
+        try:
+            input_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[3]/div/div/input'
+            inp = driver.find_element(By.XPATH, input_xpath)
+            inp.click()
+            inp.clear()
+            inp.send_keys(currency.lower())
+        except NoSuchElementException:
+            raise InvalidXpathNavigationException(xpath=input_xpath, elementName='currency input')
+
+        # wait for list elements to update
+        # driver.implicitly_wait(2)
+
+        # iterate over all list items and get the first one that is visible
+        result_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[3]/div/ul/li[{}]'
+
+        # test xpath before loop
+        try:
+            driver.find_element(By.XPATH, result_xpath.format(1))
+        except NoSuchElementException:
+            raise InvalidXpathNavigationException(xpath=result_xpath.format(1), elementName='currency list element')
+
+        enum = 1
+        while True:
+            try:
+                result = driver.find_element(By.XPATH, result_xpath.format(enum))
+                # get element's text to check if visible
+                text = result.text
+                if text:
+                    # click and end loop if it is visible
+                    try:
+                        result.click()
+                    except ElementNotInteractableException:
+                        print(result)
+                    break
+
+            except NoSuchElementException:
+                # raise InvalidCurrencyException because there are no results
+                raise InvalidCurrencyException(currency)
                 # end loop after it checks all list elements
                 break
 
@@ -222,4 +285,4 @@ class Scraper:
             driver.find_element(By.CLASS_NAME, className).click()
         except NoSuchElementException:
             # raise custom navigation with classes exception
-            raise NoSuchElementException("Can't find save button.")
+            raise InvalidClassNameNavigationException(className=className, elementName='save button')

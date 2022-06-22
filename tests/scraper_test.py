@@ -19,7 +19,7 @@ class ScraperTest (unittest.TestCase):
         self.assertEqual(1, 1)
 
     def test_ScraperSetUp (self) -> None:
-        self.scraper = scraper.Scraper(country = 'china')
+        self.scraper = scraper.Scraper(country = 'china', currency = 'usd')
 
     def tearDown (self) -> None:
         """ Closes all drivers opened due to tests. """

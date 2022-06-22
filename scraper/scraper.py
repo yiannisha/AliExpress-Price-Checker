@@ -30,6 +30,7 @@ class Scraper:
     URL = 'https://www.aliexpress.com/'
     CHROMEDRIVER_PATH = ''
     RETRIES = 5
+    RETRY_INTERVAL = 0.5
 
     def __init__ (self, country: str = None, currency: str = None) -> None:
         self.setUpChromedriverPath()
@@ -69,13 +70,23 @@ class Scraper:
         driver.get(self.URL)
         self.closePopups(driver)
 
+        # open settings tab for settings to change
+        if country or currency:
+            self.openSettingsMenu(driver)
+
         # set up country
         if country:
             self.setUpCountry(driver, country)
 
         # set up currency
         # if currency:
-        #     self.setUpCurrency(driver, currency)
+            # self.setUpCurrency(driver, currency)
+
+        # save and close setttings menu
+        if country or currency:
+            self.saveSettingsMenu(driver)
+        # no need to close the settings menu because the page refreshes on save
+        #    self.closeSettingsMenu(driver)
 
         return driver
 
@@ -86,24 +97,24 @@ class Scraper:
         :param driver: driver at https://www.aliexpress.com
         """
 
-        xpaths = {
-            'cookies': '//*[@id="gdpr-new-container"]/div/div[2]/button[2]',
-            'notifications': '/html/body/div[4]/div/img',
-            'welcome': '/html/body/div[8]/div/div/img[2]',
+        classes = {
+            'cookies': 'btn-accept',
+            'notifications': '_24EHh',
+            'welcome': 'btn-close',
         }
         # get the close button for each popup and click it
-        for key, value in xpaths.items():
+        for key, value in classes.items():
             try:
-                elem = driver.find_element(By.XPATH, value)
+                elem = driver.find_element(By.CLASS_NAME, value)
                 elem.click()
             except NoSuchElementException:
                 sys.stderr.write(f'{key.capitalize()} Popup not found in startup.\n')
                 for i in range(self.RETRIES):
                     # implicitly wait
-                    driver.implicitly_wait(0.2)
+                    driver.implicitly_wait(self.RETRY_INTERVAL)
                     sys.stderr.write(f'Retrying...\n')
                     try:
-                        elem = driver.find_element(By.XPATH, value)
+                        elem = driver.find_element(By.CLASS_NAME, value)
                         elem.click()
                     except NoSuchElementException:
                         sys.stderr.write(f'{key.capitalize()} Popup not found in startup. Retry {i+1}\n')
@@ -111,30 +122,20 @@ class Scraper:
 
     def setUpCountry (self, driver: ChromeWebdriver, country: str) -> None:
         """
-        Sets up the ship to country.
+        Sets up the ship to country. Assumes that the settings menu is already open.
         Raises InvalidCountryException if invalid country is passed.
 
         :param driver: driver at https://www.aliexpress.com ready for country set up
         :param country: country to set shipment to
         """
 
-        dropdown_xpaths = ['//*[@id="switcher-info"]',
-                           '//*[@id="nav-global"]/div[4]/div/div/div/div[1]/div/a[1]',
-                          ]
+        list_dropdown_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[1]/div/a[1]'
 
-        # click first dropdown
+        # click list dropdown
         try:
-            driver.find_element(By.XPATH, dropdown_xpaths[0]).click()
+            driver.find_element(By.XPATH, list_dropdown_xpath).click()
         except NoSuchElementException:
-            pass
-            # raise custom navigation exception
-
-        # click second dropdown
-        try:
-            driver.find_element(By.XPATH, dropdown_xpaths[1]).click()
-        except NoSuchElementException:
-            pass
-            # raise custom navigation exception
+            raise InvalidXpathNavigationException(xpath=list_dropdown_xpath, elementName='country list dropdown')
 
         # click and insert in input
         try:
@@ -144,14 +145,20 @@ class Scraper:
             inp.clear()
             inp.send_keys(country.lower())
         except NoSuchElementException:
-            pass
-            # raise custom navigation exception
+            raise InvalidXpathNavigationException(xpath=input_xpath, elementName='country input')
 
         # wait for list elements to update
         # driver.implicitly_wait(2)
 
         # iterate over all list items and get the first one that is visible
         result_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[1]/div/div[1]/ul/li[{}]'
+
+        # test xpath before loop
+        try:
+            driver.find_element(By.XPATH, result_xpath.format(1))
+        except NoSuchElementException:
+            raise InvalidXpathNavigationException(xpath=result_xpath.format(1), elementName='country list element')
+
         enum = 1
         while True:
             try:
@@ -172,5 +179,47 @@ class Scraper:
 
             enum += 1
 
-        # close dropdown
-        driver.find_element(By.XPATH, dropdown_xpaths[0]).click()
+    def openSettingsMenu (self, driver: ChromeWebdriver) -> None:
+        """
+        Opens the dropdown menu where the country and currency settings are.
+
+        :param driver: driver at https://www.aliexpress.com to have the settings menu opened.
+        """
+
+        xpath = '//*[@id="switcher-info"]'
+
+        try:
+            driver.find_element(By.XPATH, xpath).click()
+        except NoSuchElementException:
+            raise InvalidXpathNavigationException(xpath=xpath, elementName='settings menu')
+
+    def closeSettingsMenu (self, driver: ChromeWebdriver) -> None:
+        """
+        Closes the dropdown menu where the country and currency settings are.
+        Assumes that the settings menu is open.
+
+        :param driver: driver at https://www.aliexpress.com to have the settings menu closed.
+        """
+
+        xpath = '//*[@id="switcher-info"]'
+
+        try:
+            driver.find_element(By.XPATH, xpath).click()
+        except NoSuchElementException:
+            raise InvalidXpathNavigationException(xpath=xpath, elementName='settings menu')
+
+    def saveSettingsMenu (self, driver: ChromeWebdriver) -> None:
+        """
+        Clicks the save button inside the settings menu.
+        Assumes that the settings menu is open.
+
+        :param driver: driver at https://www.aliexpress.com to have the settings saved.
+        """
+
+        className = 'ui-button'
+
+        try:
+            driver.find_element(By.CLASS_NAME, className).click()
+        except NoSuchElementException:
+            # raise custom navigation with classes exception
+            raise NoSuchElementException("Can't find save button.")

@@ -2,18 +2,26 @@
 
 """Scrape AliExpress."""
 
+# stdlib modules
 import os
 import re
 import sys
 import platform
+
+# third party modules
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
 
 # exceptions
 from scraper.exceptions import *
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import ElementNotInteractableException
+from selenium.common.exceptions import ElementClickInterceptedException
+
+# typing
+from typing import Union
 
 # typedef
 ChromeWebdriver: webdriver.chrome.webdriver.WebDriver
@@ -33,9 +41,9 @@ class Scraper:
     RETRIES = 5
     RETRY_INTERVAL = 0.5
 
-    def __init__ (self, country: str = None, currency: str = None) -> None:
+    def __init__ (self, country: str = None, currency: str = None, headless: bool = True) -> None:
         self.setUpChromedriverPath()
-        self.driver = self.setUpDriver(country, currency)
+        self.driver = self.setUpDriver(country, currency, headless)
 
     def close (self) -> None:
         """
@@ -56,7 +64,7 @@ class Scraper:
         if platform.system() == 'Windows':
             self.CHROMEDRIVER_PATH += '.exe'
 
-    def setUpDriver (self, country: str = None, currency: str = None) -> ChromeWebdriver:
+    def setUpDriver (self, country: Union[str, None], currency: Union[str, None], headless: bool) -> ChromeWebdriver:
         """
         Returns a Chrome driver at https://www.aliexpress.com.
 
@@ -65,29 +73,41 @@ class Scraper:
         """
 
         # create driver
-        driver = webdriver.Chrome(self.CHROMEDRIVER_PATH)
+        if headless:
+            options = Options()
+            options.add_argument('--headless')
+            options.add_argument('window-size=1920x1080')
+            driver = webdriver.Chrome(self.CHROMEDRIVER_PATH, options=options)
+        else:
+            driver = webdriver.Chrome(self.CHROMEDRIVER_PATH)
 
-        # go to url
-        driver.get(self.URL)
-        self.closePopups(driver)
+        try:
+            # go to url
+            driver.get(self.URL)
+            self.closePopups(driver)
 
-        # open settings tab for settings to change
-        if country or currency:
-            self.openSettingsMenu(driver)
+            # open settings tab for settings to change
+            if country or currency:
+                self.openSettingsMenu(driver)
 
-        # set up country
-        if country:
-            self.setUpCountry(driver, country)
+            # set up country
+            if country:
+                self.setUpCountry(driver, country)
 
-        # set up currency
-        if currency:
-            self.setUpCurrency(driver, currency)
+            # set up currency
+            if currency:
+                self.setUpCurrency(driver, currency)
 
-        # save and close setttings menu
-        if country or currency:
-            self.saveSettingsMenu(driver)
-        # no need to close the settings menu because the page refreshes on save
-        #    self.closeSettingsMenu(driver)
+            # save and close setttings menu
+            if country or currency:
+                self.saveSettingsMenu(driver)
+            # no need to close the settings menu because the page refreshes on save
+            #    self.closeSettingsMenu(driver)
+        except Exception as e:
+            with open('debug.html', 'w', encoding='utf-8') as f:
+                f.write(driver.page_source)
+            driver.close()
+            raise e
 
         return driver
 
@@ -108,6 +128,8 @@ class Scraper:
             try:
                 elem = driver.find_element(By.CLASS_NAME, value)
                 elem.click()
+            except ElementClickInterceptedException:
+                raise ElementClickInterceptedException(f'element {elem} with name {key} and class {value} click intercepted.')
             except NoSuchElementException:
                 sys.stderr.write(f'{key.capitalize()} Popup not found in startup.\n')
                 for i in range(self.RETRIES):

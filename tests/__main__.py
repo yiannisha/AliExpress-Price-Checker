@@ -7,9 +7,10 @@ from typing import List
 import unittest
 
 # internal modules
-from scraper import scraper, exceptions
+from scraper import driver, scraper, exceptions
 
 # Test classes
+from tests.driver_test import DriverTest
 from tests.scraper_test import ScraperTest
 
 def runTests (tests: List[unittest.TestCase]) -> unittest.runner.TextTestRunner:
@@ -34,5 +35,8 @@ def runTests (tests: List[unittest.TestCase]) -> unittest.runner.TextTestRunner:
     return results
 
 if __name__ == '__main__':
-    tests = [ScraperTest, ]
+    tests = [
+        # DriverTest,
+        ScraperTest,
+        ]
     runTests(tests)

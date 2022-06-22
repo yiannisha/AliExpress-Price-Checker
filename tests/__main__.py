@@ -7,7 +7,7 @@ from typing import List
 import unittest
 
 # internal modules
-from scraper import scraper
+from scraper import scraper, exceptions
 
 # Test classes
 from tests.scraper_test import ScraperTest

@@ -37,7 +37,7 @@ class App (QMainWindow):
         self.title = 'Ali Express Price Checker Prototype'
         self.left = 400
         self.top = 400
-        self.width = 400
+        self.width = 500
         self.height = 500
         self.initUI()
 
@@ -65,27 +65,27 @@ class App (QMainWindow):
         self.titleLabel.resize(400, 120)
 
         self.urlLabel = QLabel('<h3>Enter Google Sheet URL:</h3>', self)
-        self.urlLabel.move(60, 100)
-        self.urlLabel.resize(150, 20)
+        self.urlLabel.move(60, 120)
+        self.urlLabel.resize(350, 50)
         self.urlBox = QLineEdit(self)
-        self.urlBox.move(60, 130)
-        self.urlBox.resize(250, 20)
+        self.urlBox.move(60, 160)
+        self.urlBox.resize(250, 35)
 
         self.countryLabel = QLabel('<h3>Enter a country:</h3>', self)
-        self.countryLabel.move(60, 170)
-        self.countryLabel.resize(150, 20)
+        self.countryLabel.move(60, 190)
+        self.countryLabel.resize(350, 50)
         self.countryList = QComboBox(self)
         self.setUpCountryList()
-        self.countryList.move(50, 190)
-        self.countryList.resize(150, 30)
+        self.countryList.move(60, 240)
+        self.countryList.resize(350, 40)
 
         self.currencyLabel = QLabel('<h3>Enter a currency:</h3>', self)
-        self.currencyLabel.move(60, 230)
-        self.currencyLabel.resize(150, 20)
+        self.currencyLabel.move(60, 280)
+        self.currencyLabel.resize(350, 50)
         self.currencyList = QComboBox(self)
         self.setUpCurrencyList()
-        self.currencyList.move(50, 250)
-        self.currencyList.resize(150, 30)
+        self.currencyList.move(60, 330)
+        self.currencyList.resize(350, 40)
 
         self.infoLabel = QLabel('<h5></h5>', self)
         self.infoLabel.move(60, 280)

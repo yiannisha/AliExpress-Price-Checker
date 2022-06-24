@@ -48,7 +48,7 @@ class Scraper(driver.Driver):
         self.driver.get(url)
 
         # select all first options (color, size etc.)
-        # TODO
+        self.selectFirstOptions(url)
 
         # get item price string
         itemPriceString = self.getItemPriceString(url).replace(',', '.')
@@ -66,6 +66,29 @@ class Scraper(driver.Driver):
             shippingPrice = self.convertPriceToFloat(shippingPriceString)
 
         return (itemPrice, shippingPrice)
+
+    def selectFirstOptions (self, url: str) -> None:
+        """
+        Selects the first option for every one of the item's property.
+        Assumes that driver is already at an item's page.
+
+        :param url: needed for error messages
+        """
+
+        className = 'sku-property-list'
+        try:
+            lists = self.driver.find_elements(By.CLASS_NAME, className)
+
+            for list in lists:
+                # select first option
+                child_xpath = './child::*'
+                try:
+                    list.find_element(By.XPATH, child_xpath).click()
+                except NoSuchElementException:
+                    raise InvalidXpathNavigationException(xpath=child_xpath, elementName='first property option element')
+
+        except NoSuchElementException:
+            sys.stderr.write(f'No properties found at {url}\n')
 
     def getItemPriceString (self, url: str) -> str:
         """

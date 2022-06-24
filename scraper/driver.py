@@ -6,6 +6,7 @@
 import os
 import re
 import sys
+import time
 import platform
 
 # third party modules
@@ -13,6 +14,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # exceptions
 from scraper.exceptions import *
@@ -86,22 +89,58 @@ class Driver:
             if country or currency:
                 self.openSettingsMenu(driver)
 
-            # set up country
-            if country:
-                self.setUpCountry(driver, country)
+                # set up country
+                flagClass = ''
+                if country:
+                    flagClass = self.setUpCountry(driver, country)
 
-            # set up currency
-            if currency:
-                self.setUpCurrency(driver, currency)
+                # set up currency
+                currencyCode = ''
+                if currency:
+                    currencyCode = self.setUpCurrency(driver, currency)
 
             # save and close setttings menu
-            if country or currency:
                 self.saveSettingsMenu(driver)
+
+            # explicitly wait until the settings menu changes to the desired
+            # country flag and currency
+                locator = ()
+                if country:
+                    locator = (By.XPATH, '//*[@id="switcher-info"]/span[1]/i')
+                    attribute = 'class'
+                    text = flagClass
+                    try:
+                        WebDriverWait(driver, 3).until(
+                            EC.text_to_be_present_in_element_attribute(
+                                locator,
+                                attribute,
+                                text
+                            )
+                        )
+                    except NoSuchElementException:
+                        raise InvalidXpathNavigationException(xpath=locator[1], elementName='country flag element')
+
+                else:
+                    locator = (By.XPATH, '//*[@id="switcher-info"]/span[5]')
+                    text = currencyCode
+                    try:
+                        WebDriverWait(driver, 3).until(
+                            EC.text_to_be_present_in_element(
+                                locator,
+                                text
+                            )
+                        )
+                    except NoSuchElementException:
+                        raise InvalidXpathNavigationException(xpath=locator[1], elementName='currency code element')
+
             # no need to close the settings menu because the page refreshes on save
             #    self.closeSettingsMenu(driver)
+
         except Exception as e:
+            # debug
             with open('debug.html', 'w', encoding='utf-8') as f:
                 f.write(driver.page_source)
+
             driver.close()
             raise e
 
@@ -140,9 +179,10 @@ class Driver:
 
                 raise InvalidClassNameNavigationException(className=value, elementName=f'{key} popup')
 
-    def setUpCountry (self, driver: ChromeWebdriver, country: str) -> None:
+    def setUpCountry (self, driver: ChromeWebdriver, country: str) -> str:
         """
         Sets up the ship to country. Assumes that the settings menu is already open.
+        Also returns the class string for the flag element.
         Raises InvalidCountryException if invalid country is passed.
 
         :param driver: driver at https://www.aliexpress.com ready for country set up
@@ -172,6 +212,8 @@ class Driver:
 
         # iterate over all list items and get the first one that is visible
         result_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[1]/div/div[1]/ul/li[{}]'
+        flag_xpath = result_xpath + '/span'
+        flagClass = ''
 
         # test xpath before loop
         try:
@@ -187,8 +229,14 @@ class Driver:
                 style = result.get_attribute('style')
                 pattern = 'display: none'
                 if not re.search(pattern, style):
-                    # click and end loop if it is visible
+                    # click, get flag and end loop if it is visible
                     result.click()
+
+                    try:
+                        flagClass = driver.find_element(By.XPATH, flag_xpath.format(enum)).get_attribute('class')
+                    except NoSuchElementException:
+                        raise InvalidXpathNavigationException(xpath=flag_xpath.format(enum), elementName='country flag element')
+
                     break
 
             except NoSuchElementException:
@@ -199,9 +247,12 @@ class Driver:
 
             enum += 1
 
-    def setUpCurrency (self, driver: ChromeWebdriver, currency: str) -> None:
+        return flagClass
+
+    def setUpCurrency (self, driver: ChromeWebdriver, currency: str) -> str:
         """
         Sets up the currency. Assumes that the settings menu is already open.
+        Also returns a string of the currency's iso code.
         Raises InvalidCurrencyException if invalid currency is passed.
 
         :param driver: driver at https://www.aliexpress.com ready for country set up
@@ -231,6 +282,7 @@ class Driver:
 
         # iterate over all list items and get the first one that is visible
         result_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[3]/div/ul/li[{}]'
+        currencyCode = ''
 
         # test xpath before loop
         try:
@@ -245,9 +297,10 @@ class Driver:
                 # get element's text to check if visible
                 text = result.text
                 if text:
-                    # click and end loop if it is visible
+                    # click and get currency ISO Code end loop if it is visible
                     try:
                         result.click()
+                        currencyCode = text[:3]
                     except ElementNotInteractableException:
                         print(result)
                     break
@@ -259,6 +312,8 @@ class Driver:
                 break
 
             enum += 1
+
+        return currencyCode
 
     def openSettingsMenu (self, driver: ChromeWebdriver) -> None:
         """

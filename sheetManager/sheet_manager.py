@@ -9,7 +9,7 @@ import os
 import gspread
 
 # typing
-from typing import List
+from typing import List, Tuple
 
 class SheetManager:
     """
@@ -52,13 +52,37 @@ class SheetManager:
 
         return tracking
 
-    def write (self, row: int, col: int, message: str) -> None:
+    def itemPriceCells (self) -> Tuple[str, str]:
         """
-        Writes the message in the cell at (row, col) coords.
+        Returns the next available (empty) item price cell and the tracking cell next to it.
+        """
+        enum = 4
+        col = 'C{}'
+        tracking = 'D{}'
+        while True:
+            cell = self.worksheet.acell(col.format(enum))
+            if not cell.value:
+                yield (col.format(enum), tracking.format(enum))
+            enum += 1
 
-        :param col: vertical cell coordinate
-        :param row: horizontal cell coordinate
+    def shipPriceCells (self) -> str:
+        """
+        Returns the next available (empty) shipping price cell.
+        """
+        enum = 4
+        col = 'D{}'
+        while True:
+            cell = self.worksheet.acell(col.format(enum))
+            if not cell.value:
+                yield col.format(enum)
+            enum += 1
+
+    def write (self, name: str, message: str) -> None:
+        """
+        Writes the message in the cell with the passed name.
+
+        :param name: the cell's name
         :param message: message to write in cell
         """
 
-        self.worksheet.update_cell(row, col, message)
+        self.worksheet.update(name, message)

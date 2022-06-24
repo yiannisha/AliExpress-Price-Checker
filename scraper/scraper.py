@@ -49,6 +49,9 @@ class Scraper(driver.Driver):
         logging.info(f'Now scraping: {url}')
         self.driver.get(url)
 
+        # initialy check that the product is available to be shipped
+        if not self.checkAvailability():
+            return (0, 0)
 
         # select all first options (color, size etc.)
         self.selectFirstOptions(url)
@@ -69,6 +72,31 @@ class Scraper(driver.Driver):
             shippingPrice = self.convertPriceToFloat(shippingPriceString)
 
         return (itemPrice, shippingPrice)
+
+    def checkAvailability (self) -> bool:
+        """
+        Returns true if product is available.
+        """
+
+        # make sure that parent element is loaded
+        # (parent element is present no matter the item's availability)
+        parentClassName = 'dynamic-shipping'
+        try:
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, parentClassName))
+            )
+        except NoSuchElementException:
+            raise InvalidClassNameNavigationException(className=parentClassName, elementName='shipping availability element')
+
+        # try to find element present when item is not available
+        className = 'dynamic-shipping-unreachable'
+        try:
+            self.driver.find_element(By.CLASS_NAME, className)
+            return False
+        except NoSuchElementException:
+            return True
+        except Exception as e:
+            raise e
 
     def selectFirstOptions (self, url: str) -> None:
         """

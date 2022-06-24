@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import time
+import logging
 
 # third party modules
 from selenium import webdriver
@@ -45,6 +46,7 @@ class Scraper(driver.Driver):
         :param tracking: whether or not to get the cheapest tracking option in shipping
         """
 
+        logging.info(f'Now scraping: {url}')
         self.driver.get(url)
 
 
@@ -75,6 +77,8 @@ class Scraper(driver.Driver):
 
         :param url: needed for error messages
         """
+
+        logging.info('Selecting the first option for all available properties...')
 
         className = 'sku-property-list'
         try:
@@ -119,6 +123,8 @@ class Scraper(driver.Driver):
         if not itemPriceString:
             raise ItemPriceNotFoundException(url=url, classes=possible_classes)
 
+        logging.info(f'Got item price: {itemPriceString}')
+
         return itemPriceString
 
     def getShippingPriceString (self, url: str) -> str:
@@ -149,12 +155,16 @@ class Scraper(driver.Driver):
         if not shippingPriceString:
             raise ShippingPriceNotFoundException(url=url, classes=possible_classes)
 
+        logging.info(f'Got item shipping price: {shippingPriceString}')
+
         return shippingPriceString
 
     def setShippingTracking (self) -> None:
         """
         Sets the shipping option to the cheapest tracking option.
         """
+
+        logging.info('Setting shipping to the cheapest option with tracking available...')
 
         # explicitly wait until the page is loaded
         # by checking whether the button for more shipping options is loaded

@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import time
+import logging
 import platform
 
 # third party modules
@@ -42,6 +43,14 @@ class Driver:
 
     def __init__(self, country: str = None, currency: str = None, headless: bool = True) -> None:
         self.setUpChromedriverPath()
+
+        self.headless = headless
+        # enable info level logging when headless
+        if headless:
+            logging.getLogger().setLevel(logging.INFO)
+        else:
+            logging.getLogger().disable = True
+
         self.driver = self.setUpDriver(country, currency, headless)
 
     def close (self) -> None:
@@ -70,6 +79,8 @@ class Driver:
         :param country: country to ship to (None for default country)
         :param currency: currency to show prices as (None for default currency)
         """
+
+        logging.info('Now setting up driver...')
 
         # create driver
         if headless:
@@ -144,6 +155,8 @@ class Driver:
             driver.close()
             raise e
 
+        logging.info('Driver setup complete.')
+
         return driver
 
     def closePopups (self, driver: ChromeWebdriver) -> None:
@@ -152,6 +165,8 @@ class Driver:
 
         :param driver: driver at https://www.aliexpress.com
         """
+
+        logging.info('Closing Popups...')
 
         classes = {
             'cookies': 'btn-accept',
@@ -188,6 +203,8 @@ class Driver:
         :param driver: driver at https://www.aliexpress.com ready for country set up
         :param country: country to set shipment to
         """
+
+        logging.info('Setting up the country...')
 
         list_dropdown_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[1]/div/a[1]'
 
@@ -258,6 +275,8 @@ class Driver:
         :param driver: driver at https://www.aliexpress.com ready for country set up
         :param currency: currency to set shipment to (i.e. 'eur', 'USD', 'hKd')
         """
+
+        logging.info('Setting up the currency...')
 
         list_dropdown_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[3]/div/span'
 

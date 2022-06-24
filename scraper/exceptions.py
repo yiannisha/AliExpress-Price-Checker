@@ -32,7 +32,7 @@ class InvalidXpathNavigationException(Exception):
         xpath : string of the xpath that the search was made with
         elementName : optional name passed for the searched element
     """
-    def __init__(self, xpath: str, message: str = None, elementName: str = None) -> None:
+    def __init__(self, xpath: str, url: str, message: str = None, elementName: str = None) -> None:
 
         self.xpath = xpath
         self.elementName = elementName
@@ -40,7 +40,7 @@ class InvalidXpathNavigationException(Exception):
             message = f'Element with supposed xpath: {xpath}'
             if elementName:
                 message += f' with the name of {elementName}'
-            message += ' cannot be found.'
+            message += f' cannot be found.\nURL: {url}'
         self.message = message
 
         super().__init__(self.message)
@@ -54,7 +54,7 @@ class InvalidClassNameNavigationException(Exception):
         className : string of the class name that the search was made with
         elementName : optional name passed for the searched element
     """
-    def __init__(self, className: str, message: str = None, elementName: str = None) -> None:
+    def __init__(self, className: str, url: str, message: str = None, elementName: str = None) -> None:
 
         self.className = className
         self.elementName = elementName
@@ -62,7 +62,7 @@ class InvalidClassNameNavigationException(Exception):
             message = f'Element with supposed className: {className}'
             if elementName:
                 message += f' with the name of {elementName}'
-            message += ' cannot be found.'
+            message += f' cannot be found.\nURL: {url}'
         self.message = message
 
         super().__init__(self.message)

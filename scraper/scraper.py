@@ -47,6 +47,7 @@ class Scraper(driver.Driver):
         """
 
         logging.info(f'Now scraping: {url}')
+        self.current_url = url
         self.driver.get(url)
 
         # initialy check that the product is available to be shipped
@@ -57,19 +58,21 @@ class Scraper(driver.Driver):
         self.selectFirstOptions(url)
 
         # get item price string
-        itemPriceString = self.getItemPriceString(url).replace(',', '.')
+        itemPriceString = self.getItemPriceString().replace(',', '.')
         # and convert it to a float
         itemPrice = self.convertPriceToFloat(itemPriceString)
+        logging.info(f'Got item price: {itemPrice}')
 
         # get the shipping price string
         # firstly validate that tracking is available if tracking is true
         if tracking:
             self.setShippingTracking()
-        shippingPriceString = self.getShippingPriceString(url).replace(',', '.')
+        shippingPriceString = self.getShippingPriceString().replace(',', '.')
         if re.search('Free Shipping', shippingPriceString):
             shippingPrice = 0
         else:
             shippingPrice = self.convertPriceToFloat(shippingPriceString)
+        logging.info(f'Got item shipping price: {shippingPrice}')
 
         return (itemPrice, shippingPrice)
 
@@ -77,6 +80,8 @@ class Scraper(driver.Driver):
         """
         Returns true if product is available.
         """
+
+        logging.info('Checking item availability...')
 
         # make sure that parent element is loaded
         # (parent element is present no matter the item's availability)
@@ -86,7 +91,7 @@ class Scraper(driver.Driver):
                 EC.presence_of_element_located((By.CLASS_NAME, parentClassName))
             )
         except NoSuchElementException:
-            raise InvalidClassNameNavigationException(className=parentClassName, elementName='shipping availability element')
+            raise InvalidClassNameNavigationException(className=parentClassName, elementName='shipping availability element', url=self.current_url)
 
         # try to find element present when item is not available
         className = 'dynamic-shipping-unreachable'
@@ -118,19 +123,17 @@ class Scraper(driver.Driver):
                 try:
                     list.find_element(By.XPATH, child_xpath).click()
                 except NoSuchElementException:
-                    raise InvalidXpathNavigationException(xpath=child_xpath, elementName='first property option element')
+                    raise InvalidXpathNavigationException(xpath=child_xpath, elementName='first property option element', url=self.current_url)
 
         except NoSuchElementException:
             sys.stderr.write(f'No properties found at {url}\n')
 
-    def getItemPriceString (self, url: str) -> str:
+    def getItemPriceString (self) -> str:
         """
         Scrapes the item price from an item page by trying to get the price from
         different possible elements.
         Assumes that driver is already at the page.
         Raises ItemPriceNotFoundException if string to be returned is empty.
-
-        :param url: needed for ItemPriceNotFoundException to be raised
         """
 
         possible_classes = [
@@ -149,20 +152,16 @@ class Scraper(driver.Driver):
                 sys.stderr.write(f'No element with class {className}, trying next one...\n')
 
         if not itemPriceString:
-            raise ItemPriceNotFoundException(url=url, classes=possible_classes)
-
-        logging.info(f'Got item price: {itemPriceString}')
+            raise ItemPriceNotFoundException(url=self.current_url, classes=possible_classes)
 
         return itemPriceString
 
-    def getShippingPriceString (self, url: str) -> str:
+    def getShippingPriceString (self) -> str:
         """
         Scrapes the shipping price from an item page by trying to get the price from
         different possible elements.
         Assumes that driver is already at the page.
         Raises ShippingPriceNotFoundException if string to be returned is empty.
-
-        :param url: needed for ShippingPriceNotFoundException to be raised
         """
 
         possible_classes = [
@@ -181,9 +180,7 @@ class Scraper(driver.Driver):
                 sys.stderr.write(f'No element with class {className}, trying next one...\n')
 
         if not shippingPriceString:
-            raise ShippingPriceNotFoundException(url=url, classes=possible_classes)
-
-        logging.info(f'Got item shipping price: {shippingPriceString}')
+            raise ShippingPriceNotFoundException(url=self.current_url, classes=possible_classes)
 
         return shippingPriceString
 
@@ -202,7 +199,7 @@ class Scraper(driver.Driver):
                 EC.presence_of_element_located((By.CLASS_NAME, buttonClassName))
             )
         except:
-            raise InvalidClassNameNavigationException(className=buttonClassName, elementName='shipping options button')
+            raise InvalidClassNameNavigationException(className=buttonClassName, elementName='shipping options button', url=self.current_url)
 
 
         # press button to open shipping options
@@ -210,7 +207,7 @@ class Scraper(driver.Driver):
             elem = self.driver.find_element(By.CLASS_NAME, buttonClassName)
             elem.click()
         except NoSuchElementException:
-            raise InvalidClassNameNavigationException(className=buttonClassName, elementName='shipping options button')
+            raise InvalidClassNameNavigationException(className=buttonClassName, elementName='shipping options button', url=self.current_url)
 
         # explicitly wait for the list to open by checking for list elements
         listElementClass = 'dynamic-shipping-mark'
@@ -219,7 +216,7 @@ class Scraper(driver.Driver):
                 EC.presence_of_element_located((By.CLASS_NAME, listElementClass))
             )
         except NoSuchElementException:
-            raise InvalidClassNameNavigationException(className=listElementClass, elementName='shipping options list element')
+            raise InvalidClassNameNavigationException(className=listElementClass, elementName='shipping options list element', url=self.current_url)
 
         # press button for more options if available
         try:
@@ -234,7 +231,7 @@ class Scraper(driver.Driver):
         try:
             shippingOptions = self.driver.find_elements(By.CLASS_NAME, trackingClassName)
         except NoSuchElementException:
-            raise InvalidClassNameNavigationException(className=trackingClassName, elementName='shipping options list element')
+            raise InvalidClassNameNavigationException(className=trackingClassName, elementName='shipping options list element', url=self.current_url)
 
         found = False
         for option in shippingOptions:

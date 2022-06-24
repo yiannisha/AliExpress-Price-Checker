@@ -47,6 +47,7 @@ class Scraper(driver.Driver):
 
         self.driver.get(url)
 
+
         # select all first options (color, size etc.)
         self.selectFirstOptions(url)
 
@@ -155,8 +156,18 @@ class Scraper(driver.Driver):
         Sets the shipping option to the cheapest tracking option.
         """
 
-        # press button to open shipping options
+        # explicitly wait until the page is loaded
+        # by checking whether the button for more shipping options is loaded
         buttonClassName = 'comet-btn'
+        try:
+            WebDriverWait(self.driver, 5).until(
+                EC.presence_of_element_located((By.CLASS_NAME, buttonClassName))
+            )
+        except:
+            raise InvalidClassNameNavigationException(className=buttonClassName, elementName='shipping options button')
+
+
+        # press button to open shipping options
         try:
             elem = self.driver.find_element(By.CLASS_NAME, buttonClassName)
             elem.click()

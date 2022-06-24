@@ -26,10 +26,19 @@ class SheetManager:
     def getItemUrls (self) -> List[str]:
         """
         Returns a list with the item urls from the worksheet in the predetermined format.
+        Skips items that already have an item price.
         """
 
+        # get all urls
         urls: List[str]
-        urls = self.worksheet.col_values(1)[3:]
+        all_urls = self.worksheet.col_values(1)[3:]
+
+        # get all item prices
+        prices: List[str]
+        prices = self.worksheet.col_values(3)[3:]
+
+        urls = [url for url, price in zip(all_urls, prices) if not price]
+        urls.extend(all_urls[len(prices):])
 
         return urls
 

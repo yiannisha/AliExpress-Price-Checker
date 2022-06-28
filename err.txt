@@ -1,0 +1,11 @@
+ 
+Traceback (most recent call last):
+  File "C:\Users\hadji\Downloads\AliExpress-Price-Checker-main\AliExpress-Price-Checker-main\ui\app.py", line 189, in on_click
+    sh = sheet_manager.SheetManager(url=sheet_url)
+  File "C:\Users\hadji\Downloads\AliExpress-Price-Checker-main\AliExpress-Price-Checker-main\sheetManager\sheet_manager.py", line 24, in __init__
+    self.worksheet = self.service_account.open_by_url(url).sheet1
+  File "C:\Users\hadji\Downloads\AliExpress-Price-Checker-main\AliExpress-Price-Checker-main\env\lib\site-packages\gspread\client.py", line 178, in open_by_url
+    return self.open_by_key(extract_id_from_url(url))
+  File "C:\Users\hadji\Downloads\AliExpress-Price-Checker-main\AliExpress-Price-Checker-main\env\lib\site-packages\gspread\utils.py", line 451, in extract_id_from_url
+    raise NoValidUrlKeyFound
+gspread.exceptions.NoValidUrlKeyFound

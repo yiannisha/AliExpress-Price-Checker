@@ -1,2 +1,3 @@
 CALL env/Scripts/activate.bat
-python main.py
+echo. > err.txt
+python main.py 2>> err.txt

@@ -4,6 +4,7 @@
 
 # stdlib
 import sys
+import traceback
 
 # inner modules
 from ui import const
@@ -188,7 +189,8 @@ class App (QMainWindow):
                 sh = sheet_manager.SheetManager(url=sheet_url)
                 # self.displayInfo('Successfully found the worksheet')
 
-            except (SpreadsheetNotFound, NoValidUrlKeyFound):
+            except (SpreadsheetNotFound, NoValidUrlKeyFound) as e:
+                sys.stderr.write(traceback.format_exc())
                 self.displayURLErrorMessage()
                 self.clearURL()
                 self.enableInput()
@@ -207,7 +209,8 @@ class App (QMainWindow):
                 # self.displayInfo('Setting up driver...')
                 scr = scraper.Scraper(country=country, currency=currency, headless=True)
                 # self.displayInfo('Successfully set up driver.')
-            except:
+            except Exception as e:
+                raise e
                 self.displayDriverErrorMessage()
                 self.enableInput()
                 return None
@@ -229,6 +232,7 @@ class App (QMainWindow):
                         'tracking': tracking,
                         'error': e,
                     })
+                    sys.stderr.write(traceback.format_exc())
                     continue
 
                 except Exception as e:

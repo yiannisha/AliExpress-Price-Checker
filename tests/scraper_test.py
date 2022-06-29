@@ -23,17 +23,17 @@ class ScraperTest(unittest.TestCase):
 
     def setUp (self) -> None:
         """ Sets up a windowed Scraper to be used later. """
-        self.scraper = scraper.Scraper(country='china', currency='eur', headless=False)
+        self.scraper = scraper.Scraper(country='china', currency='eur', headless=True)
 
     def test_scrapeURL (self) -> None:
         """ Tests the Scraper.scrapeURL method. """
 
         expected_values = [
-            ('https://www.aliexpress.com/item/1005003742432861.html', True, 24, 0),
-            ('https://www.aliexpress.com/item/1005004285231560.html', False, 14.02, 9.21),
-            ('https://www.aliexpress.com/item/1005003890863335.html', False, 17.05, 3.11),
+            ('https://www.aliexpress.com/item/1005003742432861.html', True, 22.74, 0),
+            ('https://www.aliexpress.com/item/1005003365147552.html', False, 12.42, 4.68),
+            ('https://www.aliexpress.com/item/1005003890863335.html', False, 14.95, 3.11),
             ('https://www.aliexpress.com/item/1005004047047021.html', True, 0, 0),
-            ('https://www.aliexpress.com/item/1005003604897865.html', True, 3.92, 3.63)
+            ('https://www.aliexpress.com/item/1005003604897865.html', True, 3.54, 3.63)
         ]
 
         for url, tracking, itemPrice, shipPrice in expected_values:

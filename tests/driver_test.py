@@ -26,6 +26,7 @@ class DriverTest (unittest.TestCase):
         """ Simple test that the test class is working """
         self.assertEqual(1, 1)
 
+    # @unittest.skip
     def test_DriverWindowedSetUp (self) -> None:
         """ Tests that the debug windowed Driver set up is working as intended """
         scr = driver.Driver(country='china', currency='usd', headless=False)

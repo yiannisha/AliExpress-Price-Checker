@@ -91,6 +91,10 @@ class Driver:
         else:
             driver = webdriver.Chrome(self.CHROMEDRIVER_PATH)
 
+        # set logging to warnings only
+        logger = logging.getLogger('selenium.webdriver.remote.remote_connection')
+        logger.setLevel(logging.WARNING)
+
         try:
             # go to url
             driver.get(self.URL)

@@ -57,10 +57,8 @@ class Scraper(driver.Driver):
         # select all first options (color, size etc.)
         self.selectFirstOptions(url)
 
-        # get item price string
-        itemPriceString = self.getItemPriceString().replace(',', '.')
-        # and convert it to a float
-        itemPrice = self.convertPriceToFloat(itemPriceString)
+        # get item price
+        itemPrice = self.getItemPrice()
         logging.info(f'Got item price: {itemPrice}')
 
         # get the shipping price string
@@ -116,17 +114,46 @@ class Scraper(driver.Driver):
         className = 'sku-property-list'
         try:
             lists = self.driver.find_elements(By.CLASS_NAME, className)
-
             for list in lists:
                 # select first option
                 child_xpath = './child::*'
                 try:
+                    # get first option
                     list.find_element(By.XPATH, child_xpath).click()
+
+                    # explicitly wait for the more options button to reload
+                    self.waitMoreOptionsButton()
+                    # the more options button updates everytime an option is selected
+                    # and it always finishes loading after the price has been updated
+                    # if it needs to, so it is the perfect wait time after a click
+
                 except NoSuchElementException:
                     raise InvalidXpathNavigationException(xpath=child_xpath, elementName='first property option element', url=self.current_url)
 
         except NoSuchElementException:
             sys.stderr.write(f'No properties found at {url}\n')
+
+    def waitMoreOptionsButton (self) -> None:
+        """
+        Explicitly wait until the 'More Options' button is loaded.
+        """
+
+        buttonClassName = 'comet-btn'
+        try:
+            WebDriverWait(self.driver, 5).until(
+                EC.presence_of_element_located((By.CLASS_NAME, buttonClassName))
+            )
+        except:
+            raise InvalidClassNameNavigationException(className=buttonClassName, elementName='shipping options button', url=self.current_url)
+
+
+
+
+    def getItemPrice (self) -> float:
+        """
+        Wraps the getItemPriceString.
+        """
+        return self.convertPriceToFloat(self.getItemPriceString().replace(',', '.'))
 
     def getItemPriceString (self) -> str:
         """

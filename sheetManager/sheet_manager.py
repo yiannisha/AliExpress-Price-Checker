@@ -47,14 +47,18 @@ class SheetManager:
         Returns a list with the tracking booleans from the worksheet in the predetermined format.
         In case not a single tracking is written then it will return a list of length urlNum with None's.
 
-        :param urlNum:
+        :param urlNum: length of corresponding url list
         """
 
         tracking: List[bool]
         tracking = [bool(i) for i in self.worksheet.col_values(2)[3:]]
 
+        if len(tracking) != urlNum:
+            while len(tracking) < urlNum:
+                tracking.append(False)
+
         if not tracking:
-            tracking = [None for i in range(0, urlNum)]
+            tracking = [False for i in range(0, urlNum)]
 
         return tracking
 

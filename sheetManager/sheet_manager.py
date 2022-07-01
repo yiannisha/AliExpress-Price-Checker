@@ -42,13 +42,19 @@ class SheetManager:
 
         return urls
 
-    def getTracking (self) -> List[bool]:
+    def getTracking (self, urlNum: int) -> List[bool]:
         """
         Returns a list with the tracking booleans from the worksheet in the predetermined format.
+        In case not a single tracking is written then it will return a list of length urlNum with None's.
+
+        :param urlNum:
         """
 
         tracking: List[bool]
         tracking = [bool(i) for i in self.worksheet.col_values(2)[3:]]
+
+        if not tracking:
+            tracking = [None for i in range(0, urlNum)]
 
         return tracking
 

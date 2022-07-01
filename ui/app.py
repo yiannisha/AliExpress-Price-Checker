@@ -198,7 +198,8 @@ class App (QMainWindow):
 
             # get urls
             urls = sh.getItemUrls()
-            if urls: trackings = sh.getTracking()
+            if urls:
+                trackings = sh.getTracking(len(urls))
             else:
                 self.enableInput()
                 return None

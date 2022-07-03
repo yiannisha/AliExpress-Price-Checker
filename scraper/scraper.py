@@ -50,7 +50,11 @@ class Scraper(driver.Driver):
         self.current_url = url
         self.driver.get(url)
 
-        # initialy check that the product is available to be shipped
+        # initialy check that the product page is not deleted
+        if not self.checkPageAvailability():
+            return (0, 0)
+
+        # check that the product is available to be sent at the requested country
         if not self.checkAvailability():
             return (0, 0)
 
@@ -73,6 +77,22 @@ class Scraper(driver.Driver):
         logging.info(f'Got item shipping price: {shippingPrice}')
 
         return (itemPrice, shippingPrice)
+
+    def checkPageAvailability (self) -> bool:
+        """
+        Returns true if the product page is not removed.
+        """
+
+        logging.info('Checking product page...')
+
+        className = 'not-found-page'
+        try:
+            self.driver.find_element(By.CLASS_NAME, className)
+            return False
+        except NoSuchElementException:
+            return True
+        except Exception as e:
+            raise e
 
     def checkAvailability (self) -> bool:
         """

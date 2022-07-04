@@ -5,6 +5,7 @@
 # stdlib
 import sys
 import traceback
+import logging
 
 # inner modules
 from ui import const
@@ -24,6 +25,7 @@ from PyQt5.QtWidgets import QComboBox
 from scraper.exceptions import *
 from gspread.exceptions import SpreadsheetNotFound
 from gspread.exceptions import NoValidUrlKeyFound
+from requests.exceptions import ConnectionError
 
 # typing
 from typing import Union
@@ -34,6 +36,10 @@ class App (QMainWindow):
     """
 
     def __init__ (self) -> None:
+
+        # initialize logger
+        logging.getLogger().setLevel(logging.INFO)
+
         super().__init__()
         self.title = 'Ali Express Price Checker Prototype'
         self.left = 400
@@ -190,7 +196,7 @@ class App (QMainWindow):
                 # self.displayInfo('Successfully found the worksheet')
 
             except (SpreadsheetNotFound, NoValidUrlKeyFound) as e:
-                sys.stderr.write(traceback.format_exc())
+                logging.error(f'Spreadsheet error: {e}')
                 self.displayURLErrorMessage()
                 self.clearURL()
                 self.enableInput()
@@ -211,13 +217,19 @@ class App (QMainWindow):
                 scr = scraper.Scraper(country=country, currency=currency, headless=True)
                 # self.displayInfo('Successfully set up driver.')
             except Exception as e:
-                raise e
+                logging.error(f'Error occured while trying to set up the scraper: {e}')
                 self.displayDriverErrorMessage()
                 self.enableInput()
                 return None
 
             # start feeding the urls to the scraper
-            scraperExceptions = (InvalidXpathNavigationException, InvalidClassNameNavigationException, ItemPriceNotFoundException, ShippingPriceNotFoundException)
+            expectedExceptions = (
+                InvalidXpathNavigationException,
+                InvalidClassNameNavigationException,
+                ItemPriceNotFoundException,
+                ShippingPriceNotFoundException,
+                ConnectionError,
+                )
             error_items = []
             for url, tracking, (itemCell, shipCell) in zip(urls, trackings, sh.itemPriceCells()):
                 try:
@@ -226,21 +238,32 @@ class App (QMainWindow):
                     sh.write(itemCell, itemPrice)
                     sh.write(shipCell, shipPrice)
 
-                except scraperExceptions as e:
+                except expectedExceptions as e:
                     # no need for the loop to stop in case an item is misbehaving
                     error_items.append({
                         'url': url,
                         'tracking': tracking,
                         'error': e,
                     })
-                    sys.stderr.write(traceback.format_exc())
+                    logging.error(f'Error occured while trying to scrape: {url}\nError: {e}')
+                    logging.info(f'Skipping item with url: {url}')
                     continue
 
                 except Exception as e:
                     # we need the loop to stop otherwise
-                    raise e
+                    logging.error(f'An unexpected error occured.\n{e}\nClosing the app.')
+                    try:
+                        scr.close()
+                    except Exception as e:
+                        logging.error(f'Could not close scraper due to an error: {e}')
+                    self.close()
 
-            # once the loop is over clear the url and reenable the input
+            # once the loop is over
+
+            # close the scraper
+            scr.close()
+
+            # clear the url and reenable the input
             self.clearURL()
             self.enableInput()
 

@@ -20,6 +20,7 @@ from scraper import driver
 
 # exceptions
 from scraper.exceptions import *
+from requests.exceptions import ConnectionError
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import ElementNotInteractableException
 from selenium.common.exceptions import ElementClickInterceptedException
@@ -38,6 +39,9 @@ class Scraper(driver.Driver):
     def __init__ (self, country: str = None, currency: str = None, headless: bool = True) -> None:
         super().__init__(country, currency, headless)
 
+        # a variable used to count the retries done for scraping url
+        self.retryCount = 0
+
     def scrapeURL (self, url: str, tracking: bool) -> Tuple[float, float]:
         """
         Scrapes the given AliExpress url for the item price and the shipping price.
@@ -47,34 +51,47 @@ class Scraper(driver.Driver):
         """
 
         logging.info(f'Now scraping: {url}')
-        self.current_url = url
-        self.driver.get(url)
+        try:
 
-        # initialy check that the product page is not deleted
-        if not self.checkPageAvailability():
-            return (0, 0)
+            self.current_url = url
+            self.driver.get(url)
 
-        # check that the product is available to be sent at the requested country
-        if not self.checkAvailability():
-            return (0, 0)
+            # initialy check that the product page is not deleted
+            if not self.checkPageAvailability():
+                return (0, 0)
 
-        # select all first options (color, size etc.)
-        self.selectFirstOptions(url)
+            # check that the product is available to be sent at the requested country
+            if not self.checkAvailability():
+                return (0, 0)
 
-        # get item price
-        itemPrice = self.getItemPrice()
-        logging.info(f'Got item price: {itemPrice}')
+            # select all first options (color, size etc.)
+            self.selectFirstOptions(url)
 
-        # get the shipping price string
-        # firstly validate that tracking is available if tracking is true
-        if tracking:
-            self.setShippingTracking()
-        shippingPriceString = self.getShippingPriceString().replace(',', '.')
-        if re.search('Free Shipping', shippingPriceString):
-            shippingPrice = 0
-        else:
-            shippingPrice = self.convertPriceToFloat(shippingPriceString)
-        logging.info(f'Got item shipping price: {shippingPrice}')
+            # get item price
+            itemPrice = self.getItemPrice()
+            logging.info(f'Got item price: {itemPrice}')
+
+            # get the shipping price string
+            # firstly validate that tracking is available if tracking is true
+            if tracking:
+                self.setShippingTracking()
+            shippingPriceString = self.getShippingPriceString().replace(',', '.')
+            if re.search('Free Shipping', shippingPriceString):
+                shippingPrice = 0
+            else:
+                shippingPrice = self.convertPriceToFloat(shippingPriceString)
+            logging.info(f'Got item shipping price: {shippingPrice}')
+        except ConnectionError as e:
+            if self.retryCount >= self.RETRIES:
+                logging.error(f'Retried {self.retryCount} times. Error occured at last try: {e}')
+
+            logging.error(f'There was an error in the connection. Resetting driver and retrying...')
+            self.retryCount += 1
+            self.resetDriver()
+            return self.scrapeURL(url, tracking)
+
+        # reset retry count if successful
+        self.retryCount = 0
 
         return (itemPrice, shippingPrice)
 
@@ -165,9 +182,6 @@ class Scraper(driver.Driver):
             )
         except:
             raise InvalidClassNameNavigationException(className=buttonClassName, elementName='shipping options button', url=self.current_url)
-
-
-
 
     def getItemPrice (self) -> float:
         """

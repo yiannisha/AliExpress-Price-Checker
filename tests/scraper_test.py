@@ -29,6 +29,7 @@ class ScraperTest(unittest.TestCase):
         """ Tests the Scraper.scrapeURL method. """
 
         expected_values = [
+            ('https://www.aliexpress.com/item/4000790011174.html', True, 0, 0),
             ('https://www.aliexpress.com/item/1005003742432861.html', True, 22.74, 0),
             ('https://www.aliexpress.com/item/1005003365147552.html', False, 12.42, 4.68),
             ('https://www.aliexpress.com/item/1005003890863335.html', False, 14.95, 3.11),

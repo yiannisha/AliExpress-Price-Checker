@@ -44,20 +44,31 @@ class Driver:
     def __init__(self, country: str = None, currency: str = None, headless: bool = True) -> None:
         self.setUpChromedriverPath()
 
+        self.country = country
+        self.currency = currency
         self.headless = headless
+
         # enable info level logging when headless
         if headless:
             logging.getLogger().setLevel(logging.INFO)
         else:
             logging.getLogger().disable = True
 
-        self.driver = self.setUpDriver(country, currency, headless)
+        self.driver = self.setUpDriver(self.country, self.currency, self.headless)
 
     def close (self) -> None:
         """
         Closes the driver.
         """
-        self.driver.close()
+        logging.info('Closing Driver...')
+        self.driver.quit()
+
+    def resetDriver (self) -> None:
+        """
+        Resets the driver itself by closing it and setting it up again.
+        """
+        self.close()
+        self.driver = self.setUpDriver(self.country, self.currency, self.headless)
 
     def setUpChromedriverPath (self) -> None:
         """
@@ -156,7 +167,7 @@ class Driver:
             with open('debug.html', 'w', encoding='utf-8') as f:
                 f.write(driver.page_source)
 
-            driver.close()
+            driver.quit()
             raise e
 
         logging.info('Driver setup complete.')

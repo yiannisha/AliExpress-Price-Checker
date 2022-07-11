@@ -23,6 +23,8 @@ from scraper.exceptions import *
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import ElementNotInteractableException
 from selenium.common.exceptions import ElementClickInterceptedException
+from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import NoSuchAttributeException
 
 # typing
 from typing import Union
@@ -30,6 +32,8 @@ from typing import Union
 # typedef
 ChromeWebdriver: webdriver.chrome.webdriver.WebDriver
 ChromeWebdriver = webdriver.chrome.webdriver.WebDriver
+WebElement: webdriver.remote.webelement.WebElement
+WebElement = webdriver.remote.webelement.WebElement
 
 class Driver:
     """
@@ -185,29 +189,23 @@ class Driver:
 
         classes = {
             'cookies': 'btn-accept',
-            'notifications': '_24EHh',
+            # 'notifications': '_24EHh',
             'welcome': 'btn-close',
         }
-        # get the close button for each popup and click it
-        for key, value in classes.items():
-            try:
-                elem = driver.find_element(By.CLASS_NAME, value)
-                elem.click()
-            except ElementClickInterceptedException:
-                raise ElementClickInterceptedException(f'element {elem} with name {key} and class {value} click intercepted.')
-            except NoSuchElementException:
-                sys.stderr.write(f'{key.capitalize()} Popup not found in startup.\n')
-                for i in range(self.RETRIES):
-                    # implicitly wait
-                    driver.implicitly_wait(self.RETRY_INTERVAL)
-                    sys.stderr.write(f'Retrying...\n')
-                    try:
-                        elem = driver.find_element(By.CLASS_NAME, value)
-                        elem.click()
-                    except NoSuchElementException:
-                        sys.stderr.write(f'{key.capitalize()} Popup not found in startup. Retry {i+1}\n')
 
-                raise InvalidClassNameNavigationException(url=self.URL, className=value, elementName=f'{key} popup')
+        # explicitly wait until all three popups are loaded
+        for popup, className in classes.items():
+            try:
+                WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, className))
+                )
+                driver.find_element(By.CLASS_NAME, className).click()
+
+            except ElementClickInterceptedException:
+                raise ElementClickInterceptedException(f'element with name {popup} and class {className} click intercepted.')
+
+            except (NoSuchElementException, TimeoutException):
+                raise InvalidClassNameNavigationException(url=self.URL, className=className, elementName=f'{popup} popup')
 
     def setUpCountry (self, driver: ChromeWebdriver, country: str) -> str:
         """
@@ -221,63 +219,55 @@ class Driver:
 
         logging.info('Setting up the country...')
 
-        list_dropdown_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[1]/div/a[1]'
+        country_dropdown_class = 'address-select-trigger'
 
-        # click list dropdown
+        # explicitly wait for the country list dropdown to load
         try:
-            driver.find_element(By.XPATH, list_dropdown_xpath).click()
-        except NoSuchElementException:
-            raise InvalidXpathNavigationException(url=self.URL, xpath=list_dropdown_xpath, elementName='country list dropdown')
+            WebDriverWait(driver, 3).until(
+                EC.presence_of_element_located((By.CLASS_NAME, country_dropdown_class))
+            )
+        # click list dropdown
+            driver.find_element(By.CLASS_NAME, country_dropdown_class).click()
+        except (NoSuchElementException, TimeoutException):
+            raise InvalidClassNameNavigationException(url=self.URL, className=country_dropdown_class, elementName='country list dropdown')
 
         # click and insert in input
         try:
-            input_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[1]/div/div[1]/div/input'
-            inp = driver.find_element(By.XPATH, input_xpath)
+            input_class = 'filter-input'
+            inp = driver.find_element(By.CLASS_NAME, input_class)
             inp.click()
             inp.clear()
             inp.send_keys(country.lower())
         except NoSuchElementException:
-            raise InvalidXpathNavigationException(url=self.URL, xpath=input_xpath, elementName='country input')
-
-        # wait for list elements to update
-        # driver.implicitly_wait(2)
+            raise InvalidClassNameNavigationException(url=self.URL, className=input_class, elementName='country input')
 
         # iterate over all list items and get the first one that is visible
-        result_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[1]/div/div[1]/ul/li[{}]'
-        flag_xpath = result_xpath + '/span'
+        # result_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[1]/div/div[1]/ul/li[{}]'
+        result_class = 'address-select-item'
+        # flag_xpath = result_xpath + '/span'
         flagClass = ''
 
-        # test xpath before loop
+        # iterate over all countries and click the first one that is not disabled
         try:
-            driver.find_element(By.XPATH, result_xpath.format(1))
-        except NoSuchElementException:
-            raise InvalidXpathNavigationException(url=self.URL, xpath=result_xpath.format(1), elementName='country list element')
+            for result in driver.find_elements(By.CLASS_NAME, result_class):
 
-        enum = 1
-        while True:
-            try:
-                result = driver.find_element(By.XPATH, result_xpath.format(enum))
-                # get element's style to check if visible
+                # check that it is a valid item by getting the 'data-name' attribute
+                if not result.get_attribute('data-name'):
+                    continue
+
+                # get style to check display
                 style = result.get_attribute('style')
                 pattern = 'display: none'
+
                 if not re.search(pattern, style):
-                    # click, get flag and end loop if it is visible
+                    # get flag class, click and end loop if visible
+                    dataCode = result.get_attribute('data-code')
+                    flagClass = f'css_{dataCode}'
                     result.click()
-
-                    try:
-                        flagClass = driver.find_element(By.XPATH, flag_xpath.format(enum)).get_attribute('class')
-                    except NoSuchElementException:
-                        raise InvalidXpathNavigationException(url=self.URL, xpath=flag_xpath.format(enum), elementName='country flag element')
-
                     break
 
-            except NoSuchElementException:
-                # raise InvalidCountryException because there are no results
-                raise InvalidCountryException(country)
-                # end loop after it checks all list elements
-                break
-
-            enum += 1
+        except NoSuchElementException:
+            raise InvalidClassNameNavigationException(url=self.URL, className=result_class, elementName='country list element')
 
         return flagClass
 
@@ -293,29 +283,34 @@ class Driver:
 
         logging.info('Setting up the currency...')
 
-        list_dropdown_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[3]/div/span'
+        # list_dropdown_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[3]/div/span'
+        currency_dropdown_class = 'select-item'
 
-        # click list dropdown
+        # explicitly wait until the currency dropdown list is present
         try:
-            driver.find_element(By.XPATH, list_dropdown_xpath).click()
-        except NoSuchElementException:
-            raise InvalidXpathNavigationException(url=self.URL, xpath=list_dropdown_xpath, elementName='currency list dropdown')
+            WebDriverWait(driver, 3).until(
+                EC.presence_of_element_located((By.CLASS_NAME, currency_dropdown_class))
+            )
+            driver.find_elements(By.CLASS_NAME, currency_dropdown_class)[1].click()
+        except (NoSuchElementException, TimeoutException):
+            raise InvalidClassNameNavigationException(url=self.URL, className=currency_dropdown_class, elementName='currency list dropdown')
 
         # click and insert in input
         try:
-            input_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[3]/div/div/input'
-            inp = driver.find_element(By.XPATH, input_xpath)
+            input_class = 'search-currency'
+            inp = [
+                elem for elem in driver.find_elements(By.CLASS_NAME, input_class)
+                if not self.getAttribute(element=elem, attribute='data-role')
+                ][0]
             inp.click()
             inp.clear()
             inp.send_keys(currency.lower())
-        except NoSuchElementException:
-            raise InvalidXpathNavigationException(url=self.URL, xpath=input_xpath, elementName='currency input')
 
-        # wait for list elements to update
-        # driver.implicitly_wait(2)
+        except (NoSuchElementException, TimeoutException):
+            raise InvalidClassNameNavigationException(url=self.URL, className=input_class, elementName='currency input')
 
         # iterate over all list items and get the first one that is visible
-        result_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[3]/div/ul/li[{}]'
+        result_xpath = '//*[@id="nav-global"]/div[3]/div/div/div/div[3]/div/ul/li[{}]/a'
         currencyCode = ''
 
         # test xpath before loop
@@ -393,3 +388,21 @@ class Driver:
         except NoSuchElementException:
             # raise custom navigation with classes exception
             raise InvalidClassNameNavigationException(url=self.URL, className=className, elementName='save button')
+
+    def getAttribute (self, element: WebElement, attribute: str) -> Union[str, None]:
+        """
+        Returns the element's attribute value.
+        Returns None if the element has no such attribute.
+
+        :param element: element to get the attribute of
+        :param attribute: the name of the attribute
+        """
+
+        attr = None
+
+        try:
+            attr = element.get_attribute(attribute)
+        except NoSuchAttributeException:
+            pass
+
+        return attr

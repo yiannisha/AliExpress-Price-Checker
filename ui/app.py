@@ -187,7 +187,7 @@ class App (QMainWindow):
             # get country and currency
             country = self.countryList.currentText()
             if country == 'None': country = None
-            currency = self.currencyList.currentText()
+            currency = self.currencyList.currentText()[:3]
             if currency == 'None': currency = None
 
             # get worksheet

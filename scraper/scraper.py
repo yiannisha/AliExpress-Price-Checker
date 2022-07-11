@@ -165,7 +165,7 @@ class Scraper(driver.Driver):
                     # if it needs to, so it is the perfect wait time after a click
 
                 except NoSuchElementException:
-                    raise InvalidXpathNavigationException(xpath=child_xpath, elementName='first property option element', url=self.current_url)
+                    raise InvalidXpathNavigationException(url=self.current_url, xpath=child_xpath, elementName='first property option element')
 
         except NoSuchElementException:
             sys.stderr.write(f'No properties found at {url}\n')
@@ -181,7 +181,7 @@ class Scraper(driver.Driver):
                 EC.presence_of_element_located((By.CLASS_NAME, buttonClassName))
             )
         except:
-            raise InvalidClassNameNavigationException(className=buttonClassName, elementName='shipping options button', url=self.current_url)
+            raise InvalidClassNameNavigationException(url=self.current_url, className=buttonClassName, elementName='shipping options button')
 
     def getItemPrice (self) -> float:
         """
@@ -260,7 +260,7 @@ class Scraper(driver.Driver):
                 EC.presence_of_element_located((By.CLASS_NAME, buttonClassName))
             )
         except:
-            raise InvalidClassNameNavigationException(className=buttonClassName, elementName='shipping options button', url=self.current_url)
+            raise InvalidClassNameNavigationException(url=self.current_url, className=buttonClassName, elementName='shipping options button')
 
 
         # press button to open shipping options
@@ -268,7 +268,7 @@ class Scraper(driver.Driver):
             elem = self.driver.find_element(By.CLASS_NAME, buttonClassName)
             elem.click()
         except NoSuchElementException:
-            raise InvalidClassNameNavigationException(className=buttonClassName, elementName='shipping options button', url=self.current_url)
+            raise InvalidClassNameNavigationException(url=self.current_url, className=buttonClassName, elementName='shipping options button')
 
         # explicitly wait for the list to open by checking for list elements
         listElementClass = 'dynamic-shipping-mark'
@@ -277,7 +277,7 @@ class Scraper(driver.Driver):
                 EC.presence_of_element_located((By.CLASS_NAME, listElementClass))
             )
         except NoSuchElementException:
-            raise InvalidClassNameNavigationException(className=listElementClass, elementName='shipping options list element', url=self.current_url)
+            raise InvalidClassNameNavigationException(url=self.current_url, className=listElementClass, elementName='shipping options list element')
 
         # press button for more options if available
         try:
@@ -292,7 +292,7 @@ class Scraper(driver.Driver):
         try:
             shippingOptions = self.driver.find_elements(By.CLASS_NAME, trackingClassName)
         except NoSuchElementException:
-            raise InvalidClassNameNavigationException(className=trackingClassName, elementName='shipping options list element', url=self.current_url)
+            raise InvalidClassNameNavigationException(url=self.current_url, className=trackingClassName, elementName='shipping options list element')
 
         found = False
         for option in shippingOptions:

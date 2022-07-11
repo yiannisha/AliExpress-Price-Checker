@@ -144,7 +144,7 @@ class Driver:
                             )
                         )
                     except NoSuchElementException:
-                        raise InvalidXpathNavigationException(xpath=locator[1], elementName='country flag element')
+                        raise InvalidXpathNavigationException(url=self.URL, xpath=locator[1], elementName='country flag element')
 
                 else:
                     locator = (By.XPATH, '//*[@id="switcher-info"]/span[5]')
@@ -157,7 +157,7 @@ class Driver:
                             )
                         )
                     except NoSuchElementException:
-                        raise InvalidXpathNavigationException(xpath=locator[1], elementName='currency code element')
+                        raise InvalidXpathNavigationException(url=self.URL, xpath=locator[1], elementName='currency code element')
 
             # no need to close the settings menu because the page refreshes on save
             #    self.closeSettingsMenu(driver)
@@ -207,7 +207,7 @@ class Driver:
                     except NoSuchElementException:
                         sys.stderr.write(f'{key.capitalize()} Popup not found in startup. Retry {i+1}\n')
 
-                raise InvalidClassNameNavigationException(className=value, elementName=f'{key} popup')
+                raise InvalidClassNameNavigationException(url=self.URL, className=value, elementName=f'{key} popup')
 
     def setUpCountry (self, driver: ChromeWebdriver, country: str) -> str:
         """
@@ -227,7 +227,7 @@ class Driver:
         try:
             driver.find_element(By.XPATH, list_dropdown_xpath).click()
         except NoSuchElementException:
-            raise InvalidXpathNavigationException(xpath=list_dropdown_xpath, elementName='country list dropdown')
+            raise InvalidXpathNavigationException(url=self.URL, xpath=list_dropdown_xpath, elementName='country list dropdown')
 
         # click and insert in input
         try:
@@ -237,7 +237,7 @@ class Driver:
             inp.clear()
             inp.send_keys(country.lower())
         except NoSuchElementException:
-            raise InvalidXpathNavigationException(xpath=input_xpath, elementName='country input')
+            raise InvalidXpathNavigationException(url=self.URL, xpath=input_xpath, elementName='country input')
 
         # wait for list elements to update
         # driver.implicitly_wait(2)
@@ -251,7 +251,7 @@ class Driver:
         try:
             driver.find_element(By.XPATH, result_xpath.format(1))
         except NoSuchElementException:
-            raise InvalidXpathNavigationException(xpath=result_xpath.format(1), elementName='country list element')
+            raise InvalidXpathNavigationException(url=self.URL, xpath=result_xpath.format(1), elementName='country list element')
 
         enum = 1
         while True:
@@ -267,7 +267,7 @@ class Driver:
                     try:
                         flagClass = driver.find_element(By.XPATH, flag_xpath.format(enum)).get_attribute('class')
                     except NoSuchElementException:
-                        raise InvalidXpathNavigationException(xpath=flag_xpath.format(enum), elementName='country flag element')
+                        raise InvalidXpathNavigationException(url=self.URL, xpath=flag_xpath.format(enum), elementName='country flag element')
 
                     break
 
@@ -299,7 +299,7 @@ class Driver:
         try:
             driver.find_element(By.XPATH, list_dropdown_xpath).click()
         except NoSuchElementException:
-            raise InvalidXpathNavigationException(xpath=list_dropdown_xpath, elementName='currency list dropdown')
+            raise InvalidXpathNavigationException(url=self.URL, xpath=list_dropdown_xpath, elementName='currency list dropdown')
 
         # click and insert in input
         try:
@@ -309,7 +309,7 @@ class Driver:
             inp.clear()
             inp.send_keys(currency.lower())
         except NoSuchElementException:
-            raise InvalidXpathNavigationException(xpath=input_xpath, elementName='currency input')
+            raise InvalidXpathNavigationException(url=self.URL, xpath=input_xpath, elementName='currency input')
 
         # wait for list elements to update
         # driver.implicitly_wait(2)
@@ -322,7 +322,7 @@ class Driver:
         try:
             driver.find_element(By.XPATH, result_xpath.format(1))
         except NoSuchElementException:
-            raise InvalidXpathNavigationException(xpath=result_xpath.format(1), elementName='currency list element')
+            raise InvalidXpathNavigationException(url=self.URL, xpath=result_xpath.format(1), elementName='currency list element')
 
         enum = 1
         while True:
@@ -361,7 +361,7 @@ class Driver:
         try:
             driver.find_element(By.XPATH, xpath).click()
         except NoSuchElementException:
-            raise InvalidXpathNavigationException(xpath=xpath, elementName='settings menu')
+            raise InvalidXpathNavigationException(url=self.URL, xpath=xpath, elementName='settings menu')
 
     def closeSettingsMenu (self, driver: ChromeWebdriver) -> None:
         """
@@ -376,7 +376,7 @@ class Driver:
         try:
             driver.find_element(By.XPATH, xpath).click()
         except NoSuchElementException:
-            raise InvalidXpathNavigationException(xpath=xpath, elementName='settings menu')
+            raise InvalidXpathNavigationException(url=self.URL, xpath=xpath, elementName='settings menu')
 
     def saveSettingsMenu (self, driver: ChromeWebdriver) -> None:
         """
@@ -392,4 +392,4 @@ class Driver:
             driver.find_element(By.CLASS_NAME, className).click()
         except NoSuchElementException:
             # raise custom navigation with classes exception
-            raise InvalidClassNameNavigationException(className=className, elementName='save button')
+            raise InvalidClassNameNavigationException(url=self.URL, className=className, elementName='save button')

@@ -29,17 +29,13 @@ class DriverTest (unittest.TestCase):
     # @unittest.skip
     def test_DriverWindowedSetUp (self) -> None:
         """ Tests that the debug windowed Driver set up is working as intended """
-        scr = driver.Driver(country='china', currency='usd', headless=False)
+        scr = driver.Driver(country='china', currency='usd', headless=True, debug=True)
         scr.close()
 
     # @unittest.skip
     def test_DriverHeadlessSetUp (self) -> None:
         """ Tests that the headless Driver set up is working as intended """
-        self.driver = driver.Driver(country='china', currency='usd', headless=True)
-
-        # debug
-        with open('debug.html', 'w', encoding='utf-8') as f:
-            f.write(self.driver.driver.page_source)
+        self.driver = driver.Driver(country='china', currency='usd', headless=True, debug=True)
 
         # verify that save button is clicked
         self.driver.driver.refresh()
@@ -63,8 +59,6 @@ class DriverTest (unittest.TestCase):
 
         self.assertEqual(flag.get_attribute('class'), expected_values['flag'])
         self.assertEqual(currency.text, expected_values['currency'])
-
-
 
     def tearDown (self) -> None:
         """ Closes all drivers opened due to tests. """

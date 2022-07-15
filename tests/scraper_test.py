@@ -19,6 +19,10 @@ from selenium.common.exceptions import NoSuchElementException
 # typing
 from typing import Tuple
 
+# typedef
+Scraper: scraper.Scraper
+Scraper = scraper.Scraper
+
 class ScraperTest(unittest.TestCase):
     """ A class to test the Scraper class. """
 
@@ -26,8 +30,28 @@ class ScraperTest(unittest.TestCase):
         """ Sets up a windowed Scraper to be used later. """
         self.scraper = scraper.Scraper(country='china', currency='eur', headless=True)
 
-    def test_scrapeURL (self) -> None:
+    @unittest.skip
+    def test_emptyScraper (self) -> None:
+        """ Tests the functionality of a Scraper with no country or currency """
+        try:
+            scr = scraper.Scraper(headless=True, debug=True)
+            print(f'empty scraper: {scr}')
+            self.test_scrapeURL(scraper=scr)
+        except AssertionError as e:
+            print(e)
+        except Exception as e:
+            raise e
+        finally:
+            scr.close()
+
+    # @unittest.skip
+    def test_scrapeURL (self, scraper: Scraper = None) -> None:
         """ Tests the Scraper.scrapeURL method. """
+
+        if not scraper:
+            scraper = self.scraper
+
+        print(f'running test_scrapeURL using {scraper} scraper')
 
         expected_values = [
             ('https://www.aliexpress.com/item/4000790011174.html', True, 0, 0),
@@ -40,7 +64,7 @@ class ScraperTest(unittest.TestCase):
 
         for url, tracking, itemPrice, shipPrice in expected_values:
             data: Tuple[float, float]
-            data = self.scraper.scrapeURL(url, tracking)
+            data = scraper.scrapeURL(url, tracking)
             self.assertEqual(data[0], itemPrice)
             self.assertEqual(data[1], shipPrice)
 

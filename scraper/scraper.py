@@ -36,8 +36,8 @@ class Scraper(driver.Driver):
     scraper.exceptions.InvalidCountryException
     """
 
-    def __init__ (self, country: str = None, currency: str = None, headless: bool = True) -> None:
-        super().__init__(country, currency, headless)
+    def __init__ (self, country: str = None, currency: str = None, headless: bool = True, debug: bool = False) -> None:
+        super().__init__(country, currency, headless, debug)
 
         # a variable used to count the retries done for scraping url
         self.retryCount = 0

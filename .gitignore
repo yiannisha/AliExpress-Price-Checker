@@ -9,3 +9,5 @@ creds.json
 credentials.json
 .DS_Store
 tests/debug.html
+tests/driver_debug.html
+tests/scraper_debug.html

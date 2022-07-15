@@ -199,7 +199,7 @@ class Scraper(driver.Driver):
 
         possible_classes = [
             'product-price-current',
-            'uniform-banner-box-price',
+            'uniform-banner-box-discounts',
         ]
 
         itemPriceString = ''

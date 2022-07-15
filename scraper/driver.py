@@ -112,13 +112,23 @@ class Driver:
         logger.setLevel(logging.WARNING)
 
         try:
-            # go to url
-            driver.get(self.URL)
-            self.closePopups(driver)
 
             # open settings tab for settings to change
             if country or currency:
-                self.openSettingsMenu(driver)
+                # go to url
+                driver.get(self.URL)
+                self.closePopups(driver)
+
+                try:
+                    self.openSettingsMenu(driver)
+                except ElementClickInterceptedException:
+                    logging.info('Something intercepted the clicking the button to open the Settings menu')
+                    # if the setting button cannot be clicked there must be some
+                    # some popups that are still open so we try to close them again
+                    self.closePopups(driver)
+                    # we do not catch the ElementClickInterceptedException the second
+                    # time because something must be wrong
+                    self.openSettingsMenu(driver)
 
                 # set up country
                 flagClass = ''
@@ -211,7 +221,7 @@ class Driver:
             except ElementClickInterceptedException:
                 raise ElementClickInterceptedException(f'element with name {popup} and class {className} click intercepted.')
 
-            except (NoSuchElementException, TimeoutException):
+            except (NoSuchElementException, ElementNotInteractableException, TimeoutException):
                 logging.info(f'Skipping {popup} popup. If it intercepts will try to close again.')
                 # raise InvalidClassNameNavigationException(url=self.URL, className=className, elementName=f'{popup} popup')
 
@@ -365,6 +375,9 @@ class Driver:
             driver.find_element(By.XPATH, xpath).click()
         except NoSuchElementException:
             raise InvalidXpathNavigationException(url=self.URL, xpath=xpath, elementName='settings menu')
+        # we want to explicitly catch and raise ElementClickInterceptedException so that it is handled
+        except ElementClickInterceptedException as e:
+            raise e
 
     def closeSettingsMenu (self, driver: ChromeWebdriver) -> None:
         """

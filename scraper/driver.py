@@ -415,7 +415,7 @@ class Driver:
 
         return attr
 
-    def savePageSource (self, driver: ChromeWebdriver, filepath: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tests', 'debug.html')) -> None:
+    def savePageSource (self, driver: ChromeWebdriver, filepath: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tests', 'driver_debug.html')) -> None:
         """
         Writes the page source of the page currently
         open in the driver to the specified file.

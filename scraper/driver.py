@@ -45,12 +45,13 @@ class Driver:
     RETRIES = 5
     RETRY_INTERVAL = 0.5
 
-    def __init__(self, country: str = None, currency: str = None, headless: bool = True) -> None:
+    def __init__(self, country: str = None, currency: str = None, headless: bool = True, debug: bool = False) -> None:
         self.setUpChromedriverPath()
 
         self.country = country
         self.currency = currency
         self.headless = headless
+        self.debug = debug
 
         # enable info level logging when headless
         if headless:
@@ -58,7 +59,7 @@ class Driver:
         else:
             logging.getLogger().disable = True
 
-        self.driver = self.setUpDriver(self.country, self.currency, self.headless)
+        self.driver = self.setUpDriver(self.country, self.currency, self.headless, self.debug)
 
     def close (self) -> None:
         """
@@ -72,7 +73,7 @@ class Driver:
         Resets the driver itself by closing it and setting it up again.
         """
         self.close()
-        self.driver = self.setUpDriver(self.country, self.currency, self.headless)
+        self.driver = self.setUpDriver(self.country, self.currency, self.headless, self.debug)
 
     def setUpChromedriverPath (self) -> None:
         """
@@ -87,7 +88,7 @@ class Driver:
         if platform.system() == 'Windows':
             self.CHROMEDRIVER_PATH += '.exe'
 
-    def setUpDriver (self, country: Union[str, None], currency: Union[str, None], headless: bool) -> ChromeWebdriver:
+    def setUpDriver (self, country: Union[str, None], currency: Union[str, None], headless: bool, debug: bool = False) -> ChromeWebdriver:
         """
         Returns a Chrome driver at https://www.aliexpress.com.
 
@@ -149,6 +150,10 @@ class Driver:
                         )
                     except NoSuchElementException:
                         raise InvalidXpathNavigationException(url=self.URL, xpath=locator[1], elementName='country flag element')
+                    except TimeoutException:
+                        if self.debug:
+                            self.savePageSource(driver)
+                        raise TimeoutException(f'"{text}" not present in attribute: {attribute} of element: {locator[1]}')
 
                 else:
                     locator = (By.XPATH, '//*[@id="switcher-info"]/span[5]')
@@ -162,15 +167,17 @@ class Driver:
                         )
                     except NoSuchElementException:
                         raise InvalidXpathNavigationException(url=self.URL, xpath=locator[1], elementName='currency code element')
+                    except TimeoutException:
+                        if self.debug:
+                            self.savePageSource(driver)
+                        raise TimeoutException(f'"{text}" not present in element: {locator[1]}')
 
             # no need to close the settings menu because the page refreshes on save
             #    self.closeSettingsMenu(driver)
 
         except Exception as e:
             # debug
-            with open('debug.html', 'w', encoding='utf-8') as f:
-                f.write(driver.page_source)
-
+            self.savePageSource(driver)
             driver.quit()
             raise e
 
@@ -189,14 +196,14 @@ class Driver:
 
         classes = {
             'cookies': 'btn-accept',
-            # 'notifications': '_24EHh',
+            'notifications': '_24EHh',
             'welcome': 'btn-close',
         }
 
         # explicitly wait until all three popups are loaded
         for popup, className in classes.items():
             try:
-                WebDriverWait(driver, 5).until(
+                WebDriverWait(driver, 3).until(
                     EC.presence_of_element_located((By.CLASS_NAME, className))
                 )
                 driver.find_element(By.CLASS_NAME, className).click()
@@ -205,7 +212,8 @@ class Driver:
                 raise ElementClickInterceptedException(f'element with name {popup} and class {className} click intercepted.')
 
             except (NoSuchElementException, TimeoutException):
-                raise InvalidClassNameNavigationException(url=self.URL, className=className, elementName=f'{popup} popup')
+                logging.info(f'Skipping {popup} popup. If it intercepts will try to close again.')
+                # raise InvalidClassNameNavigationException(url=self.URL, className=className, elementName=f'{popup} popup')
 
     def setUpCountry (self, driver: ChromeWebdriver, country: str) -> str:
         """
@@ -406,3 +414,17 @@ class Driver:
             pass
 
         return attr
+
+    def savePageSource (self, driver: ChromeWebdriver, filepath: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tests', 'debug.html')) -> None:
+        """
+        Writes the page source of the page currently
+        open in the driver to the specified file.
+
+        :param driver: driver with currently open page that we need the page source
+        :param filepath: path to file to write page source to, defaults to debug.html in tests
+        """
+
+        logging.info(f'Writing page source in {filepath}')
+
+        with open(filepath, 'w', encoding='utf-8') as file:
+            file.write(driver.page_source)

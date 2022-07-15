@@ -3,6 +3,7 @@
 """ Tests for the scraper module """
 
 # stdlib modules
+import os
 import unittest
 
 # thrid-party modules
@@ -45,6 +46,7 @@ class ScraperTest(unittest.TestCase):
 
     def tearDown (self) -> None:
         """ Closes running Scrapers """
-        with open('debug.html', 'w', encoding='utf-8') as f:
+        filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'scraper_debug.html')
+        with open(filepath, 'w', encoding='utf-8') as f:
             f.write(self.scraper.driver.page_source)
         self.scraper.close()

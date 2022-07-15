@@ -8,3 +8,4 @@ file_structure
 creds.json
 credentials.json
 .DS_Store
+tests/debug.html

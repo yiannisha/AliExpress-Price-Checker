@@ -194,12 +194,12 @@ class Scraper(driver.Driver):
         Scrapes the item price from an item page by trying to get the price from
         different possible elements.
         Assumes that driver is already at the page.
-        Raises ItemPriceNotFoundException if string to be returned is empty.
+        Raises ItemPriceNotFoundException if string itemPriceString is empty.
         """
 
         possible_classes = [
-            'product-price-current',
-            'uniform-banner-box-discounts',
+            'uniform-banner-box-price',
+            'product-price-value',
         ]
 
         itemPriceString = ''
@@ -226,7 +226,6 @@ class Scraper(driver.Driver):
         """
 
         possible_classes = [
-            # '//*[@id="root"]/div/div[2]/div/div[2]/div[12]/div/div/div[1]/span/span/strong',
             'dynamic-shipping',
         ]
 

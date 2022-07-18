@@ -26,6 +26,9 @@ from selenium.common.exceptions import ElementClickInterceptedException
 from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import NoSuchAttributeException
 
+# constants
+from scraper.const import NO_NEW_USER_BONUS_COOKIE_VALUE, NO_NEW_USER_BONUS_COOKIE_NAME
+
 # typing
 from typing import Union
 
@@ -140,7 +143,12 @@ class Driver:
                 if currency:
                     currencyCode = self.setUpCurrency(driver, currency)
 
-            # save and close setttings menu
+            # inject cookie to bypass the new user bonus
+                self.injectCookie(driver=driver,
+                                  cookieValue=NO_NEW_USER_BONUS_COOKIE_VALUE,
+                                  cookieName=NO_NEW_USER_BONUS_COOKIE_NAME)
+
+            # click save in the setttings menu
                 self.saveSettingsMenu(driver)
 
             # explicitly wait until the settings menu changes to the desired
@@ -442,3 +450,26 @@ class Driver:
 
         with open(filepath, 'w', encoding='utf-8') as file:
             file.write(driver.page_source)
+
+    def injectCookie (self, driver: ChromeWebdriver, cookieValue: str, cookieName: str) -> None:
+        """
+        Injects cookie with name cookieName and value cookieValue
+        into the current page open in the driver.
+        If there is a cookie with the same name already it will
+        replace that cookie using the original cookie's attributes.
+        (i.e. expiry date)
+
+        :param cookieValue: value of the cookie to be injected
+        :param cookieName: name of the cookie to be injected
+        """
+
+        logging.info('Adding cookies to bypass the new user bonus')
+
+        cookie = driver.get_cookie(cookieName)
+        if not cookie:
+            cookie = {}
+
+        cookie['name'] = cookieName
+        cookie['value'] = cookieValue
+
+        driver.add_cookie(cookie)

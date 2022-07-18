@@ -50,6 +50,8 @@ class Scraper(driver.Driver):
         :param tracking: whether or not to get the cheapest tracking option in shipping
         """
 
+        url = self.sanitizeURL(url)
+
         logging.info(f'Now scraping: {url}')
         try:
 
@@ -313,3 +315,16 @@ class Scraper(driver.Driver):
 
         pattern = '([\d.,]+)'
         return float(re.search(pattern, price).groups()[0])
+
+    def sanitizeURL (self, url: str) -> str:
+        """
+        Removes all parameters from the url.
+
+        :param url: url to sanitize
+        """
+
+        index = url.find('?')
+        if index >= 0:
+            return url[:index]
+
+        return url

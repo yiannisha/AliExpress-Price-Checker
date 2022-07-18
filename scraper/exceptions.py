@@ -67,6 +67,51 @@ class InvalidClassNameNavigationException(Exception):
 
         super().__init__(self.message)
 
+class InvalidIdNavigationException(Exception):
+    """
+    Raised when there an element can't be found.
+    Raised only when we search for the element by id.
+
+    Attributes:
+        id : string of the id that the search was made with
+        elementName : optional name passed for the searched element
+    """
+    def __init__(self, id: str, url: str, message: str = None, elementName: str = None) -> None:
+
+        self.id = id
+        self.elementName = elementName
+        if not message:
+            message = f'Element with supposed id: {id}'
+            if elementName:
+                message += f' with the name of {elementName}'
+            message += f' cannot be found.\nURL: {url}'
+        self.message = message
+
+        super().__init__(self.message)
+
+class InvalidTagNameNavigationException(Exception):
+    """
+    Raised when there an element can't be found.
+    Raised only when we search for the element by tag name.
+
+    Attributes:
+        tagName : string of the tag name that the search was made with
+        elementName : optional name passed for the searched element
+    """
+    def __init__(self, tagName: str, url: str, message: str = None, elementName: str = None) -> None:
+
+        self.tagName = tagName
+        self.elementName = elementName
+        if not message:
+            message = f'Element with supposed tag name: {tagName}'
+            if elementName:
+                message += f' with the name of {elementName}'
+            message += f' cannot be found.\nURL: {url}'
+        self.message = message
+
+        super().__init__(self.message)
+
+
 class ItemPriceNotFoundException(Exception):
     """
     Raised when the Scraper can't find an item's price.

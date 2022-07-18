@@ -54,12 +54,13 @@ class ScraperTest(unittest.TestCase):
         print(f'running test_scrapeURL using {scraper} scraper')
 
         expected_values = [
+            ('https://www.aliexpress.com/item/33052582900.html', True, 4.12, 3.66),
             ('https://www.aliexpress.com/item/4000790011174.html', True, 0, 0),
-            ('https://www.aliexpress.com/item/1005003742432861.html', True, 132.60, 0),
-            ('https://www.aliexpress.com/item/1005003365147552.html', False, 18.62, 4.91),
-            ('https://www.aliexpress.com/item/1005003890863335.html', False, 22.03, 3.27),
+            ('https://www.aliexpress.com/item/1005003742432861.html', True, 26.32, 0),
+            ('https://www.aliexpress.com/item/1005003365147552.html', False, 12.75, 4.87),
+            ('https://www.aliexpress.com/item/1005003890863335.html', False, 17.76, 3.24),
             ('https://www.aliexpress.com/item/1005004047047021.html', True, 0, 0),
-            ('https://www.aliexpress.com/item/1005003604897865.html', True, 13.25, 3.81)
+            ('https://www.aliexpress.com/item/1005003604897865.html', True, 4.34, 3.78)
         ]
 
         for url, tracking, itemPrice, shipPrice in expected_values:

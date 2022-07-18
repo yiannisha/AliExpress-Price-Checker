@@ -260,9 +260,7 @@ class Driver:
             raise InvalidClassNameNavigationException(url=self.URL, className=input_class, elementName='country input')
 
         # iterate over all list items and get the first one that is visible
-        # result_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[1]/div/div[1]/ul/li[{}]'
         result_class = 'address-select-item'
-        # flag_xpath = result_xpath + '/span'
         flagClass = ''
 
         # iterate over all countries and click the first one that is not disabled
@@ -301,7 +299,6 @@ class Driver:
 
         logging.info('Setting up the currency...')
 
-        # list_dropdown_xpath = '//*[@id="nav-global"]/div[4]/div/div/div/div[3]/div/span'
         currency_dropdown_class = 'select-item'
 
         # explicitly wait until the currency dropdown list is present
@@ -328,37 +325,41 @@ class Driver:
             raise InvalidClassNameNavigationException(url=self.URL, className=input_class, elementName='currency input')
 
         # iterate over all list items and get the first one that is visible
-        result_xpath = '//*[@id="nav-global"]/div[3]/div/div/div/div[3]/div/ul/li[{}]/a'
+        currency_list_parent_class = 'switcher-currency-c'
+        list_tag_name = 'ul'
+        result_xpath = './child::*'
         currencyCode = ''
 
-        # test xpath before loop
+        # get parent element
         try:
-            driver.find_element(By.XPATH, result_xpath.format(1))
+            parent = driver.find_elements(By.CLASS_NAME, currency_list_parent_class)[1]
         except NoSuchElementException:
-            raise InvalidXpathNavigationException(url=self.URL, xpath=result_xpath.format(1), elementName='currency list element')
+            raise InvalidClassNameNavigationException(url=self.URL, className=currency_list_parent_class, elementName='currency list parent')
 
-        enum = 1
-        while True:
-            try:
-                result = driver.find_element(By.XPATH, result_xpath.format(enum))
-                # get element's text to check if visible
-                text = result.text
-                if text:
-                    # click and get currency ISO Code end loop if it is visible
-                    try:
-                        result.click()
-                        currencyCode = text[:3]
-                    except ElementNotInteractableException:
-                        print(result)
-                    break
+        # get list
+        try:
+            result_list = parent.find_element(By.TAG_NAME, list_tag_name)
+        except NoSuchElementException:
+            raise InvalidTagNameNavigationException(url=self.URL, tagName=list_tag_name, elementName='currency list')
 
-            except NoSuchElementException:
-                # raise InvalidCurrencyException because there are no results
-                raise InvalidCurrencyException(currency)
-                # end loop after it checks all list elements
+        # get results
+        try:
+            results = result_list.find_elements(By.XPATH, result_xpath)
+
+            if not results:
+                raise NoSuchElementException('List returned is empty')
+        except NoSuchElementException:
+            raise InvalidXpathNavigationException(url=self.URL, xpath=result_xpath, elementName='currency list items')
+
+        for result in results:
+            # get result's text to check if visible
+            if not result.text:
+                continue
+            else:
+            # click the first visible result's link and break the loop
+                result.click()
+                currencyCode = result.text[:3]
                 break
-
-            enum += 1
 
         return currencyCode
 
@@ -369,12 +370,12 @@ class Driver:
         :param driver: driver at https://www.aliexpress.com to have the settings menu opened.
         """
 
-        xpath = '//*[@id="switcher-info"]'
+        id = 'switcher-info'
 
         try:
-            driver.find_element(By.XPATH, xpath).click()
+            driver.find_element(By.ID, id).click()
         except NoSuchElementException:
-            raise InvalidXpathNavigationException(url=self.URL, xpath=xpath, elementName='settings menu')
+            raise InvalidIdNavigationException(url=self.URL, id=id, elementName='settings menu')
         # we want to explicitly catch and raise ElementClickInterceptedException so that it is handled
         except ElementClickInterceptedException as e:
             raise e
@@ -387,12 +388,12 @@ class Driver:
         :param driver: driver at https://www.aliexpress.com to have the settings menu closed.
         """
 
-        xpath = '//*[@id="switcher-info"]'
+        id = 'switcher-info'
 
         try:
-            driver.find_element(By.XPATH, xpath).click()
+            driver.find_element(By.ID, id).click()
         except NoSuchElementException:
-            raise InvalidXpathNavigationException(url=self.URL, xpath=xpath, elementName='settings menu')
+            raise InvalidIdNavigationException(url=self.URL, id=id, elementName='settings menu')
 
     def saveSettingsMenu (self, driver: ChromeWebdriver) -> None:
         """

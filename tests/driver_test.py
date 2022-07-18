@@ -26,7 +26,7 @@ class DriverTest (unittest.TestCase):
         """ Simple test that the test class is working """
         self.assertEqual(1, 1)
 
-    # @unittest.skip
+    @unittest.skip
     def test_DriverWindowedSetUp (self) -> None:
         """ Tests that the debug windowed Driver set up is working as intended """
         scr = driver.Driver(country='china', currency='usd', headless=True, debug=True)
@@ -40,17 +40,23 @@ class DriverTest (unittest.TestCase):
         # verify that save button is clicked
         self.driver.driver.refresh()
 
-        flag_xpath = '//*[@id="switcher-info"]/span[1]/i'
+        flag_parent_class = 'ship-to'
         try:
-            flag = self.driver.driver.find_element(By.XPATH, flag_xpath)
+            flag_parent = self.driver.driver.find_element(By.CLASS_NAME, flag_parent_class)
         except NoSuchElementException:
-            raise exceptions.InvalidXpathNavigationException(xpath=flag_xpath, elementName='settings menu flag')
+            raise exceptions.InvalidClassNameNavigationException(url=self.driver.URL, className=flag_parent_class, elementName='settings menu flag parent')
 
-        currency_xpath = '//*[@id="switcher-info"]/span[5]'
+        flag_xpath = './child::*'
         try:
-            currency = self.driver.driver.find_element(By.XPATH, currency_xpath)
+            flag = flag_parent.find_element(By.XPATH, flag_xpath)
         except NoSuchElementException:
-            raise exceptions.InvalidXpathNavigationException(xpath=currency_xpath, elementName='settings menu currency')
+            raise exceptions.InvalidXpathNavigationException(url=self.driver.URL, xpath=flag_xpath, elementName='settings menu flag')
+
+        currency_class = 'currency'
+        try:
+            currency = self.driver.driver.find_element(By.CLASS_NAME, currency_class)
+        except NoSuchElementException:
+            raise exceptions.InvalidClassNameNavigationException(url=self.driver.URL, className=currency_class, elementName='settings menu currency')
 
         expected_values = {
             'flag': 'css_flag css_hk',

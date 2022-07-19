@@ -315,8 +315,9 @@ class Driver:
                 EC.presence_of_element_located((By.CLASS_NAME, currency_dropdown_class))
             )
             driver.find_elements(By.CLASS_NAME, currency_dropdown_class)[1].click()
-        except (NoSuchElementException, TimeoutException):
-            raise InvalidClassNameNavigationException(url=self.URL, className=currency_dropdown_class, elementName='currency list dropdown')
+        except (NoSuchElementException, TimeoutException) as e:
+            raise InvalidClassNameNavigationException(url=self.URL, className=currency_dropdown_class, elementName='currency list dropdown') \
+            from e
 
         # click and insert in input
         try:
@@ -329,8 +330,9 @@ class Driver:
             inp.clear()
             inp.send_keys(currency.lower())
 
-        except (NoSuchElementException, TimeoutException):
-            raise InvalidClassNameNavigationException(url=self.URL, className=input_class, elementName='currency input')
+        except (NoSuchElementException, TimeoutException) as e:
+            raise InvalidClassNameNavigationException(url=self.URL, className=input_class, elementName='currency input') \
+            from e
 
         # iterate over all list items and get the first one that is visible
         currency_list_parent_class = 'switcher-currency-c'
@@ -341,14 +343,16 @@ class Driver:
         # get parent element
         try:
             parent = driver.find_elements(By.CLASS_NAME, currency_list_parent_class)[1]
-        except NoSuchElementException:
-            raise InvalidClassNameNavigationException(url=self.URL, className=currency_list_parent_class, elementName='currency list parent')
+        except NoSuchElementException as e:
+            raise InvalidClassNameNavigationException(url=self.URL, className=currency_list_parent_class, elementName='currency list parent') \
+            from e
 
         # get list
         try:
             result_list = parent.find_element(By.TAG_NAME, list_tag_name)
-        except NoSuchElementException:
-            raise InvalidTagNameNavigationException(url=self.URL, tagName=list_tag_name, elementName='currency list')
+        except NoSuchElementException as e:
+            raise InvalidTagNameNavigationException(url=self.URL, tagName=list_tag_name, elementName='currency list') \
+            from e
 
         # get results
         try:
@@ -356,18 +360,19 @@ class Driver:
 
             if not results:
                 raise NoSuchElementException('List returned is empty')
-        except NoSuchElementException:
-            raise InvalidXpathNavigationException(url=self.URL, xpath=result_xpath, elementName='currency list items')
+        except NoSuchElementException as e:
+            raise InvalidXpathNavigationException(url=self.URL, xpath=result_xpath, elementName='currency list items') \
+            as e
 
         for result in results:
             # get result's text to check if visible
             if not result.text:
                 continue
-            else:
+
             # click the first visible result's link and break the loop
-                result.click()
-                currencyCode = result.text[:3]
-                break
+            result.click()
+            currencyCode = result.text[:3]
+            break
 
         return currencyCode
 
@@ -382,8 +387,9 @@ class Driver:
 
         try:
             driver.find_element(By.ID, id).click()
-        except NoSuchElementException:
-            raise InvalidIdNavigationException(url=self.URL, id=id, elementName='settings menu')
+        except NoSuchElementException as e:
+            raise InvalidIdNavigationException(url=self.URL, id=id, elementName='settings menu') \
+            from e
         # we want to explicitly catch and raise ElementClickInterceptedException so that it is handled
         except ElementClickInterceptedException as e:
             raise e
@@ -400,8 +406,9 @@ class Driver:
 
         try:
             driver.find_element(By.ID, id).click()
-        except NoSuchElementException:
-            raise InvalidIdNavigationException(url=self.URL, id=id, elementName='settings menu')
+        except NoSuchElementException as e:
+            raise InvalidIdNavigationException(url=self.URL, id=id, elementName='settings menu') \
+            from e
 
     def saveSettingsMenu (self, driver: ChromeWebdriver) -> None:
         """
@@ -473,3 +480,5 @@ class Driver:
         cookie['value'] = cookieValue
 
         driver.add_cookie(cookie)
+
+    # def getElement (self, locatorMethod: str, locatorValue: str, url: str, elementName: str = None, driver: ChromeWebdriver = None) ->

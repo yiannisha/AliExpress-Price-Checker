@@ -109,6 +109,7 @@ class Scraper(driver.Driver):
         className = 'not-found-page'
         try:
             self.driver.find_element(By.CLASS_NAME, className)
+            logging.info('Product page unavailable.')
             return False
         except NoSuchElementException:
             return True
@@ -121,6 +122,30 @@ class Scraper(driver.Driver):
         """
 
         logging.info('Checking item availability...')
+
+        # there are two levels of availability that we need to check
+
+        # first level: the item is at all available
+
+        # if this element exists then the item is not at all available
+        try:
+            unavailability_class = 'next-message-content'
+            utils.getElement(
+                parent=self.driver,
+                locatorMethod=By.CLASS_NAME,
+                locatorValue=unavailability_class,
+                url=self.current_url,
+                elementName='"item unavailable" message'
+            )
+
+            logging.info('Item is unavailable.')
+
+            return False
+
+        except InvalidClassNameNavigationException:
+            pass
+
+        # second level: the item is available to be shipped
 
         # make sure that parent element is loaded
         # (parent element is present no matter the item's availability)
@@ -137,6 +162,7 @@ class Scraper(driver.Driver):
         className = 'dynamic-shipping-unreachable'
         try:
             self.driver.find_element(By.CLASS_NAME, className)
+            logging.info('Item is unavailable.')
             return False
         except NoSuchElementException:
             return True

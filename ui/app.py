@@ -8,7 +8,7 @@ import traceback
 import logging
 
 # inner modules
-from ui import const
+from ui import const, apputils
 from scraper import scraper
 from sheetManager import sheet_manager
 
@@ -251,12 +251,13 @@ class App (QMainWindow):
 
                 except Exception as e:
                     # we need the loop to stop otherwise
-                    logging.error(f'An unexpected error occured.\n{e}\nClosing the app.')
+                    logging.error(f'An unexpected error occured.\n{apputils.exceptionName(e)}: "{e}"\nClosing the app.')
                     try:
                         scr.close()
                     except Exception as e:
                         logging.error(f'Could not close scraper due to an error: {e}')
                     self.close()
+                    break
 
             # once the loop is over
 

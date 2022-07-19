@@ -153,7 +153,6 @@ class Driver:
 
             # explicitly wait until the settings menu changes to the desired
             # country flag and currency
-            # we're checking only for the currency because it is easier
 
             locator = (By.CLASS_NAME, 'currency')
             text = currencyCode
@@ -172,6 +171,27 @@ class Driver:
                     utils.savePageSource(driver)
                 raise TimeoutException(f'"{text}" not present in element: {locator[1]}') \
                 from e
+
+            locator = (By.CLASS_NAME, 'ship-to')
+            attribute = 'class'
+            text = flagClass
+            try:
+                WebDriverWait(driver, 5).until(
+                    utils.text_to_be_present_in_child_element_attribute(
+                        locator,
+                        attribute,
+                        text
+                    )
+                )
+            except NoSuchElementException as e:
+                raise InvalidClassNameNavigationException(url=self.URL, className=locator[1], elementName='country flag') \
+                from e
+            except TimeoutException as e:
+                if self.debug:
+                    utils.savePageSource(driver)
+                raise TimeoutException(f"'{text}' not present in attribute: {attribute} of element's: {locator[1]} child") \
+                from e
+
 
             # no need to close the settings menu because the page refreshes on save
             #    self.closeSettingsMenu(driver)

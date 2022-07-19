@@ -9,7 +9,7 @@ import os
 import gspread
 
 # typing
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Union
 
 class SheetManager:
     """
@@ -42,7 +42,7 @@ class SheetManager:
 
         return urls
 
-    def getTracking (self, urlNum: int) -> List[bool]:
+    def getItemUrlsAndTracking (self) -> Dict[str, List[Union[str, bool]]]:
         """
         Returns a list with the tracking booleans from the worksheet in the predetermined format.
         In case not a single tracking is written then it will return a list of length urlNum with None's.
@@ -50,17 +50,35 @@ class SheetManager:
         :param urlNum: length of corresponding url list
         """
 
-        tracking: List[bool]
-        tracking = [bool(i) for i in self.worksheet.col_values(2)[3:]]
+        # get all urls
+        all_urls: List[str]
+        all_urls = self.worksheet.col_values(1)[3:]
 
-        if len(tracking) != urlNum:
-            while len(tracking) < urlNum:
-                tracking.append(False)
+        # get all trackings
+        all_trackings: List[bool]
+        all_trackings = [bool(i) for i in self.worksheet.col_values(2)[3:]]
 
-        if not tracking:
-            tracking = [False for i in range(0, urlNum)]
+        urlNum = len(all_urls)
+        if len(all_trackings) < urlNum:
+            while len(all_trackings) < urlNum:
+                all_trackings.append(False)
 
-        return tracking
+        # get all item prices
+        prices: List[str]
+        prices = self.worksheet.col_values(3)[3:]
+
+        if len(prices) < urlNum:
+            while len(prices) < urlNum:
+                prices.append('')
+
+        # match urls and trackings to prices
+        urls = [url for url, price in zip(all_urls, prices) if not price]
+        trackings = [tracking for tracking, price in zip(all_trackings, prices) if not price]
+
+        return {
+            'urls': urls,
+            'trackings': trackings,
+        }
 
     def itemPriceCells (self) -> Tuple[str, str]:
         """

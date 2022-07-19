@@ -203,13 +203,15 @@ class App (QMainWindow):
                 return None
 
             # get urls
-            urls = sh.getItemUrls()
-            if urls:
-                trackings = sh.getTracking(len(urls))
-            else:
+            itemDict = sh.getItemUrlsAndTracking()
+            urls, trackings = itemDict['urls'], itemDict['trackings']
+            if not urls:
                 self.enableInput()
                 return None
             # self.displayInfo('Successfully acquired urls.')
+
+            print(urls)
+            print(trackings)
 
             # set up driver
             try:

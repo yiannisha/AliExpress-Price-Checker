@@ -157,17 +157,21 @@ class Scraper(driver.Driver):
         try:
             lists = self.driver.find_elements(By.CLASS_NAME, className)
             for list in lists:
-                # select first option
+                # select first available option
 
-                # get first option
-                child_xpath = './child::*'
-                utils.getElement(
+                # get options
+                option_class = 'sku-property-item'
+                options = utils.getElements(
                     parent=list,
-                    locatorMethod=By.XPATH,
-                    locatorValue=child_xpath,
+                    locatorMethod=By.CLASS_NAME,
+                    locatorValue=option_class,
                     url=self.current_url,
-                    elementName='first property option element'
-                ).click()
+                    elementName='property options'
+                )
+                for option in options:
+                    if not 'disabled' in option.get_attribute('class'):
+                        option.click()
+                        break
 
                 # explicitly wait for the more options button to reload
                 self.waitMoreOptionsButton()

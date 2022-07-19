@@ -10,6 +10,9 @@ import time
 import logging
 import platform
 
+# inner modules
+from scraper import scraperutils as utils
+
 # third party modules
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -48,7 +51,7 @@ class Driver:
     RETRIES = 5
     RETRY_INTERVAL = 0.5
 
-    def __init__(self, country: str = None, currency: str = None, headless: bool = True, debug: bool = False) -> None:
+    def __init__(self, country: str, currency: str, headless: bool = True, debug: bool = False) -> None:
         self.setUpChromedriverPath()
 
         self.country = country
@@ -116,86 +119,66 @@ class Driver:
 
         try:
 
+            # go to url
+            driver.get(self.URL)
+            self.closePopups(driver)
+
             # open settings tab for settings to change
-            if country or currency:
-                # go to url
-                driver.get(self.URL)
+            try:
+                self.openSettingsMenu(driver)
+            except ElementClickInterceptedException:
+                logging.info('Something intercepted the clicking the button to open the Settings menu')
+                # if the setting button cannot be clicked there must be some
+                # some popups that are still open so we try to close them again
                 self.closePopups(driver)
+                # we do not catch the ElementClickInterceptedException the second
+                # time because something must be wrong
+                self.openSettingsMenu(driver)
 
-                try:
-                    self.openSettingsMenu(driver)
-                except ElementClickInterceptedException:
-                    logging.info('Something intercepted the clicking the button to open the Settings menu')
-                    # if the setting button cannot be clicked there must be some
-                    # some popups that are still open so we try to close them again
-                    self.closePopups(driver)
-                    # we do not catch the ElementClickInterceptedException the second
-                    # time because something must be wrong
-                    self.openSettingsMenu(driver)
+            # set up country
+            flagClass = ''
+            flagClass = self.setUpCountry(driver, country)
 
-                # set up country
-                flagClass = ''
-                if country:
-                    flagClass = self.setUpCountry(driver, country)
-
-                # set up currency
-                currencyCode = ''
-                if currency:
-                    currencyCode = self.setUpCurrency(driver, currency)
+            # set up currency
+            currencyCode = ''
+            currencyCode = self.setUpCurrency(driver, currency)
 
             # inject cookie to bypass the new user bonus
-                self.injectCookie(driver=driver,
-                                  cookieValue=NO_NEW_USER_BONUS_COOKIE_VALUE,
-                                  cookieName=NO_NEW_USER_BONUS_COOKIE_NAME)
+            utils.injectCookie(driver=driver,
+                               cookieValue=NO_NEW_USER_BONUS_COOKIE_VALUE,
+                               cookieName=NO_NEW_USER_BONUS_COOKIE_NAME)
 
             # click save in the setttings menu
-                self.saveSettingsMenu(driver)
+            self.saveSettingsMenu(driver)
 
             # explicitly wait until the settings menu changes to the desired
             # country flag and currency
-                locator = ()
-                if country:
-                    locator = (By.XPATH, '//*[@id="switcher-info"]/span[1]/i')
-                    attribute = 'class'
-                    text = flagClass
-                    try:
-                        WebDriverWait(driver, 3).until(
-                            EC.text_to_be_present_in_element_attribute(
-                                locator,
-                                attribute,
-                                text
-                            )
-                        )
-                    except NoSuchElementException:
-                        raise InvalidXpathNavigationException(url=self.URL, xpath=locator[1], elementName='country flag element')
-                    except TimeoutException:
-                        if self.debug:
-                            self.savePageSource(driver)
-                        raise TimeoutException(f'"{text}" not present in attribute: {attribute} of element: {locator[1]}')
+            # we're checking only for the currency because it is easier
 
-                else:
-                    locator = (By.XPATH, '//*[@id="switcher-info"]/span[5]')
-                    text = currencyCode
-                    try:
-                        WebDriverWait(driver, 3).until(
-                            EC.text_to_be_present_in_element(
-                                locator,
-                                text
-                            )
-                        )
-                    except NoSuchElementException:
-                        raise InvalidXpathNavigationException(url=self.URL, xpath=locator[1], elementName='currency code element')
-                    except TimeoutException:
-                        if self.debug:
-                            self.savePageSource(driver)
-                        raise TimeoutException(f'"{text}" not present in element: {locator[1]}')
+            locator = (By.CLASS_NAME, 'currency')
+            text = currencyCode
+            try:
+                WebDriverWait(driver, 5).until(
+                    EC.text_to_be_present_in_element(
+                        locator,
+                        text
+                    )
+                )
+            except NoSuchElementException as e:
+                raise InvalidClassNameNavigationException(url=self.URL, className=locator[1], elementName='currency code element') \
+                from e
+            except TimeoutException as e:
+                if self.debug:
+                    utils.savePageSource(driver)
+                raise TimeoutException(f'"{text}" not present in element: {locator[1]}') \
+                from e
 
             # no need to close the settings menu because the page refreshes on save
             #    self.closeSettingsMenu(driver)
 
         except Exception as e:
             # debug
-            self.savePageSource(driver)
+            utils.savePageSource(driver)
             driver.quit()
             raise e
 
@@ -226,12 +209,12 @@ class Driver:
                 )
                 driver.find_element(By.CLASS_NAME, className).click()
 
+            except (NoSuchElementException, ElementNotInteractableException, TimeoutException):
+                logging.info(f'Skipping {popup} popup. If it intercepts will try to close again.')
+
             except ElementClickInterceptedException:
                 raise ElementClickInterceptedException(f'element with name {popup} and class {className} click intercepted.')
 
-            except (NoSuchElementException, ElementNotInteractableException, TimeoutException):
-                logging.info(f'Skipping {popup} popup. If it intercepts will try to close again.')
-                # raise InvalidClassNameNavigationException(url=self.URL, className=className, elementName=f'{popup} popup')
 
     def setUpCountry (self, driver: ChromeWebdriver, country: str) -> str:
         """
@@ -252,46 +235,61 @@ class Driver:
             WebDriverWait(driver, 3).until(
                 EC.presence_of_element_located((By.CLASS_NAME, country_dropdown_class))
             )
-        # click list dropdown
-            driver.find_element(By.CLASS_NAME, country_dropdown_class).click()
         except (NoSuchElementException, TimeoutException):
             raise InvalidClassNameNavigationException(url=self.URL, className=country_dropdown_class, elementName='country list dropdown')
 
+        # click list once loaded
+        utils.getElement(
+            parent=driver,
+            locatorMethod=By.CLASS_NAME,
+            locatorValue=country_dropdown_class,
+            url=self.URL,
+            elementName='country list dropdown'
+        ).click()
+
+        # get input element
+        input_class = 'filter-input'
+        inp = utils.getElement(
+            parent=driver,
+            locatorMethod=By.CLASS_NAME,
+            locatorValue=input_class,
+            url=self.URL,
+            elementName='country input'
+        )
+
         # click and insert in input
-        try:
-            input_class = 'filter-input'
-            inp = driver.find_element(By.CLASS_NAME, input_class)
-            inp.click()
-            inp.clear()
-            inp.send_keys(country.lower())
-        except NoSuchElementException:
-            raise InvalidClassNameNavigationException(url=self.URL, className=input_class, elementName='country input')
+        inp.click()
+        inp.clear()
+        inp.send_keys(country.lower())
 
         # iterate over all list items and get the first one that is visible
         result_class = 'address-select-item'
         flagClass = ''
 
         # iterate over all countries and click the first one that is not disabled
-        try:
-            for result in driver.find_elements(By.CLASS_NAME, result_class):
+        results = utils.getElements(
+            parent=driver,
+            locatorMethod=By.CLASS_NAME,
+            locatorValue=result_class,
+            url=self.URL,
+            elementName='country list element'
+        )
 
-                # check that it is a valid item by getting the 'data-name' attribute
-                if not result.get_attribute('data-name'):
-                    continue
+        for result in results:
+            # check that it is a valid item by getting the 'data-name' attribute
+            if not result.get_attribute('data-name'):
+                continue
 
-                # get style to check display
-                style = result.get_attribute('style')
-                pattern = 'display: none'
+            # get style to check display
+            style = result.get_attribute('style')
+            pattern = 'display: none'
 
-                if not re.search(pattern, style):
-                    # get flag class, click and end loop if visible
-                    dataCode = result.get_attribute('data-code')
-                    flagClass = f'css_{dataCode}'
-                    result.click()
-                    break
-
-        except NoSuchElementException:
-            raise InvalidClassNameNavigationException(url=self.URL, className=result_class, elementName='country list element')
+            if not re.search(pattern, style):
+                # get flag class, click and end loop if visible
+                dataCode = result.get_attribute('data-code')
+                flagClass = f'css_{dataCode}'
+                result.click()
+                break
 
         return flagClass
 
@@ -320,19 +318,17 @@ class Driver:
             from e
 
         # click and insert in input
-        try:
-            input_class = 'search-currency'
-            inp = [
-                elem for elem in driver.find_elements(By.CLASS_NAME, input_class)
-                if not self.getAttribute(element=elem, attribute='data-role')
-                ][0]
-            inp.click()
-            inp.clear()
-            inp.send_keys(currency.lower())
+        input_class = 'search-currency'
+        inp = [
+            elem for elem in utils.getElements(
+                parent=driver, locatorMethod=By.CLASS_NAME,
+                locatorValue=input_class, url=self.URL, elementName='currency input')
+            if not utils.getAttribute(element=elem, attribute='data-role')
+            ][0]
+        inp.click()
+        inp.clear()
+        inp.send_keys(currency.lower())
 
-        except (NoSuchElementException, TimeoutException) as e:
-            raise InvalidClassNameNavigationException(url=self.URL, className=input_class, elementName='currency input') \
-            from e
 
         # iterate over all list items and get the first one that is visible
         currency_list_parent_class = 'switcher-currency-c'
@@ -341,28 +337,33 @@ class Driver:
         currencyCode = ''
 
         # get parent element
-        try:
-            parent = driver.find_elements(By.CLASS_NAME, currency_list_parent_class)[1]
-        except NoSuchElementException as e:
-            raise InvalidClassNameNavigationException(url=self.URL, className=currency_list_parent_class, elementName='currency list parent') \
-            from e
+        parent = utils.getElements(
+            parent=driver,
+            locatorMethod=By.CLASS_NAME,
+            locatorValue=currency_list_parent_class,
+            url=self.URL,
+            elementName='currency list parent',
+        )[1]
 
         # get list
-        try:
-            result_list = parent.find_element(By.TAG_NAME, list_tag_name)
-        except NoSuchElementException as e:
-            raise InvalidTagNameNavigationException(url=self.URL, tagName=list_tag_name, elementName='currency list') \
-            from e
+        result_list = utils.getElement(
+            parent=parent,
+            locatorMethod=By.TAG_NAME,
+            locatorValue=list_tag_name,
+            url=self.URL,
+            elementName='currency list',
+        )
 
         # get results
-        try:
-            results = result_list.find_elements(By.XPATH, result_xpath)
-
-            if not results:
-                raise NoSuchElementException('List returned is empty')
-        except NoSuchElementException as e:
-            raise InvalidXpathNavigationException(url=self.URL, xpath=result_xpath, elementName='currency list items') \
-            as e
+        results = utils.getElements(
+            parent=result_list,
+            locatorMethod=By.XPATH,
+            locatorValue=result_xpath,
+            url=self.URL,
+            elementName='currency list items'
+        )
+        if not results:
+            raise NoSuchElementException('List returned is empty.')
 
         for result in results:
             # get result's text to check if visible
@@ -370,8 +371,8 @@ class Driver:
                 continue
 
             # click the first visible result's link and break the loop
-            result.click()
             currencyCode = result.text[:3]
+            result.click()
             break
 
         return currencyCode
@@ -386,10 +387,13 @@ class Driver:
         id = 'switcher-info'
 
         try:
-            driver.find_element(By.ID, id).click()
-        except NoSuchElementException as e:
-            raise InvalidIdNavigationException(url=self.URL, id=id, elementName='settings menu') \
-            from e
+            utils.getElement(
+                parent=driver,
+                locatorMethod=By.ID,
+                locatorValue=id,
+                url=self.URL,
+                elementName='setting menu'
+            ).click()
         # we want to explicitly catch and raise ElementClickInterceptedException so that it is handled
         except ElementClickInterceptedException as e:
             raise e
@@ -404,11 +408,13 @@ class Driver:
 
         id = 'switcher-info'
 
-        try:
-            driver.find_element(By.ID, id).click()
-        except NoSuchElementException as e:
-            raise InvalidIdNavigationException(url=self.URL, id=id, elementName='settings menu') \
-            from e
+        utils.getElement(
+            parent=driver,
+            locatorMethod=By.ID,
+            locatorValue=id,
+            url=self.URL,
+            elementName='settings menu'
+        ).click()
 
     def saveSettingsMenu (self, driver: ChromeWebdriver) -> None:
         """
@@ -420,65 +426,10 @@ class Driver:
 
         className = 'ui-button'
 
-        try:
-            driver.find_element(By.CLASS_NAME, className).click()
-        except NoSuchElementException:
-            # raise custom navigation with classes exception
-            raise InvalidClassNameNavigationException(url=self.URL, className=className, elementName='save button')
-
-    def getAttribute (self, element: WebElement, attribute: str) -> Union[str, None]:
-        """
-        Returns the element's attribute value.
-        Returns None if the element has no such attribute.
-
-        :param element: element to get the attribute of
-        :param attribute: the name of the attribute
-        """
-
-        attr = None
-
-        try:
-            attr = element.get_attribute(attribute)
-        except NoSuchAttributeException:
-            pass
-
-        return attr
-
-    def savePageSource (self, driver: ChromeWebdriver, filepath: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tests', 'driver_debug.html')) -> None:
-        """
-        Writes the page source of the page currently
-        open in the driver to the specified file.
-
-        :param driver: driver with currently open page that we need the page source
-        :param filepath: path to file to write page source to, defaults to debug.html in tests
-        """
-
-        logging.info(f'Writing page source in {filepath}')
-
-        with open(filepath, 'w', encoding='utf-8') as file:
-            file.write(driver.page_source)
-
-    def injectCookie (self, driver: ChromeWebdriver, cookieValue: str, cookieName: str) -> None:
-        """
-        Injects cookie with name cookieName and value cookieValue
-        into the current page open in the driver.
-        If there is a cookie with the same name already it will
-        replace that cookie using the original cookie's attributes.
-        (i.e. expiry date)
-
-        :param cookieValue: value of the cookie to be injected
-        :param cookieName: name of the cookie to be injected
-        """
-
-        logging.info('Adding cookies to bypass the new user bonus')
-
-        cookie = driver.get_cookie(cookieName)
-        if not cookie:
-            cookie = {}
-
-        cookie['name'] = cookieName
-        cookie['value'] = cookieValue
-
-        driver.add_cookie(cookie)
-
-    # def getElement (self, locatorMethod: str, locatorValue: str, url: str, elementName: str = None, driver: ChromeWebdriver = None) ->
+        utils.getElement(
+            parent=driver,
+            locatorMethod=By.CLASS_NAME,
+            locatorValue=className,
+            url=self.URL,
+            elementName='save button',
+        ).click()

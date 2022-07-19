@@ -17,6 +17,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 # inner modules
 from scraper import driver
+from scraper import scraperutils as utils
 
 # exceptions
 from scraper.exceptions import *
@@ -37,7 +38,7 @@ class Scraper(driver.Driver):
     scraper.exceptions.InvalidCountryException
     """
 
-    def __init__ (self, country: str = None, currency: str = None, headless: bool = True, debug: bool = False) -> None:
+    def __init__ (self, country: str, currency: str, headless: bool = True, debug: bool = False) -> None:
         super().__init__(country, currency, headless, debug)
 
         # a variable used to count the retries done for scraping url
@@ -157,20 +158,22 @@ class Scraper(driver.Driver):
             lists = self.driver.find_elements(By.CLASS_NAME, className)
             for list in lists:
                 # select first option
+
+                # get first option
                 child_xpath = './child::*'
-                try:
-                    # get first option
-                    list.find_element(By.XPATH, child_xpath).click()
+                utils.getElement(
+                    parent=list,
+                    locatorMethod=By.XPATH,
+                    locatorValue=child_xpath,
+                    url=self.current_url,
+                    elementName='first property option element'
+                ).click()
 
-                    # explicitly wait for the more options button to reload
-                    self.waitMoreOptionsButton()
-                    # the more options button updates everytime an option is selected
-                    # and it always finishes loading after the price has been updated
-                    # if it needs to, so it is the perfect wait time after a click
-
-                except NoSuchElementException as e:
-                    raise InvalidXpathNavigationException(url=self.current_url, xpath=child_xpath, elementName='first property option element') \
-                    from e
+                # explicitly wait for the more options button to reload
+                self.waitMoreOptionsButton()
+                # the more options button updates everytime an option is selected
+                # and it always finishes loading after the price has been updated
+                # if it needs to, so it is the perfect wait time after a click
 
         except NoSuchElementException:
             sys.stderr.write(f'No properties found at {url}\n')
@@ -270,12 +273,14 @@ class Scraper(driver.Driver):
 
 
         # press button to open shipping options
-        try:
-            elem = self.driver.find_element(By.CLASS_NAME, buttonClassName)
-            elem.click()
-        except NoSuchElementException as e:
-            raise InvalidClassNameNavigationException(url=self.current_url, className=buttonClassName, elementName='shipping options button') \
-            from e
+        elem = utils.getElement(
+            parent=self.driver,
+            locatorMethod=By.CLASS_NAME,
+            locatorValue=buttonClassName,
+            url=self.current_url,
+            elementName='shipping options button'
+        )
+        elem.click()
 
         # explicitly wait for the list to open by checking for list elements
         listElementClass = 'dynamic-shipping-mark'
@@ -297,11 +302,13 @@ class Scraper(driver.Driver):
 
         # get first element with tracking available (already sorted from cheapest to most expensive)
         trackingClassName = 'dynamic-shipping-mark'
-        try:
-            shippingOptions = self.driver.find_elements(By.CLASS_NAME, trackingClassName)
-        except NoSuchElementException as e:
-            raise InvalidClassNameNavigationException(url=self.current_url, className=trackingClassName, elementName='shipping options list element') \
-            from e
+        shippingOptions = utils.getElements(
+            parent=self.driver,
+            locatorMethod=By.CLASS_NAME,
+            locatorValue=trackingClassName,
+            url=self.current_url,
+            elementName='shipping options list element'
+        )
 
         found = False
         for option in shippingOptions:

@@ -26,6 +26,7 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import ElementNotInteractableException
 from selenium.common.exceptions import ElementClickInterceptedException
 from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import JavascriptException
 
 # typing
 from typing import Tuple
@@ -171,7 +172,7 @@ class Scraper(driver.Driver):
 
     def selectFirstOptions (self, url: str) -> None:
         """
-        Selects the first option for every one of the item's property.
+        Selects the first available option for every one of the item's properties.
         Assumes that driver is already at an item's page.
 
         :param url: needed for error messages
@@ -204,6 +205,19 @@ class Scraper(driver.Driver):
                 # the more options button updates everytime an option is selected
                 # and it always finishes loading after the price has been updated
                 # if it needs to, so it is the perfect wait time after a click
+
+                # there is a possibility that after clicking a tooltip remains open
+                # that may obscure the next button
+                # we remove that tooltip using javascript
+                try:
+                    self.driver.execute_script(
+                    ''' let tooltip = document.getElementsByClassName("next-overlay-wrapper opened")[0];
+                        if (tooltip) {
+                            document.body.remove(tooltip);
+                        }'''
+                    )
+                except JavascriptException as e:
+                    logging.error(f'An error occured while trying to delete the potential tooltip.\n{e}')
 
         except NoSuchElementException:
             sys.stderr.write(f'No properties found at {url}\n')

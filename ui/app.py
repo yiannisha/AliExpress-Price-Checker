@@ -210,9 +210,6 @@ class App (QMainWindow):
                 return None
             # self.displayInfo('Successfully acquired urls.')
 
-            print(urls)
-            print(trackings)
-
             # set up driver
             try:
                 # self.displayInfo('Setting up driver...')

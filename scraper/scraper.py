@@ -14,6 +14,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
 
 # inner modules
 from scraper import driver
@@ -200,24 +201,25 @@ class Scraper(driver.Driver):
                         option.click()
                         break
 
+                logo_class = 'logo-base'
+                logo = utils.getElement(
+                    parent=self.driver,
+                    locatorMethod=By.CLASS_NAME,
+                    locatorValue=logo_class,
+                    url=self.current_url,
+                    elementName='logo'
+                )
+
+                # move mouse away from options because sometimes there are
+                # tooltips that intercept clicking them
+                actionChain = ActionChains(self.driver)
+                actionChain.move_to_element(logo).perform()
+
                 # explicitly wait for the more options button to reload
                 self.waitMoreOptionsButton()
                 # the more options button updates everytime an option is selected
                 # and it always finishes loading after the price has been updated
                 # if it needs to, so it is the perfect wait time after a click
-
-                # there is a possibility that after clicking a tooltip remains open
-                # that may obscure the next button
-                # we remove that tooltip using javascript
-                try:
-                    self.driver.execute_script(
-                    ''' let tooltip = document.getElementsByClassName("next-overlay-wrapper opened")[0];
-                        if (tooltip) {
-                            document.body.remove(tooltip);
-                        }'''
-                    )
-                except JavascriptException as e:
-                    logging.error(f'An error occured while trying to delete the potential tooltip.\n{e}')
 
         except NoSuchElementException:
             sys.stderr.write(f'No properties found at {url}\n')

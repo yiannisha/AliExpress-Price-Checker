@@ -106,10 +106,25 @@ class Driver:
 
         # create driver
         if headless:
-            options = Options()
-            options.add_argument('--headless')
-            options.add_argument('window-size=1920x1080')
-            driver = webdriver.Chrome(self.CHROMEDRIVER_PATH, options=options)
+            # options = Options()
+            # options.add_argument('--headless')
+            # options.add_argument('window-size=1920x1080')
+            # driver = webdriver.Chrome(self.CHROMEDRIVER_PATH, options=options)
+            chrome_options = webdriver.ChromeOptions()
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--window-size=1420,1080')
+            chrome_options.add_argument('--headless')
+            chrome_options.add_argument('--disable-gpu')
+            chrome_options.add_argument('--single-process')
+            chrome_options.binary_location = os.path.join(
+                                             os.path.dirname(os.path.abspath(__file__)),
+                                             'dependencies',
+                                             'Chromium.app',
+                                             'Contents',
+                                             'MacOS',
+                                             'Chromium'
+                                             )
+            driver = webdriver.Chrome(self.CHROMEDRIVER_PATH, chrome_options=chrome_options)
         else:
             driver = webdriver.Chrome(self.CHROMEDRIVER_PATH)
 

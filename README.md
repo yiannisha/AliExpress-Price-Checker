@@ -6,6 +6,7 @@
 - Python 3.9 and above. Install python's latest version here: https://www.python.org/ftp/python/3.10.5/python-3.10.5-amd64.exe
 
 - Download and extract the zip file: https://github.com/yiannisha/AliExpress-Price-Checker/archive/refs/heads/main.zip
+- Make copy of work sheet: https://docs.google.com/spreadsheets/d/1La7BfNPfXwotn2BNOvYYA1jMdkpKz6C4IBFK5-g-Xuc/edit?usp=sharing
 - Open the AliExpress-Price-Checker-main folder and run setup.bat
 
 # How to run

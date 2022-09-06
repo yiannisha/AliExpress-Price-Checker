@@ -30,7 +30,8 @@ from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import NoSuchAttributeException
 
 # constants
-from scraper.const import NO_NEW_USER_BONUS_COOKIE_VALUE, NO_NEW_USER_BONUS_COOKIE_NAME
+from scraper.const import NO_NEW_USER_BONUS_COOKIE_VALUE, NO_NEW_USER_BONUS_COOKIE_NAME, \
+COUNTRY_AND_CURRENCY_COOKIE_NAME, COUNTRY_AND_CURRENCY_COOKIE_VALUE, COUNTRY_ISO_CODE_DIR
 
 # typing
 from typing import Union
@@ -106,25 +107,25 @@ class Driver:
 
         # create driver
         if headless:
-            # options = Options()
-            # options.add_argument('--headless')
-            # options.add_argument('window-size=1920x1080')
-            # driver = webdriver.Chrome(self.CHROMEDRIVER_PATH, options=options)
-            chrome_options = webdriver.ChromeOptions()
-            chrome_options.add_argument('--no-sandbox')
-            chrome_options.add_argument('--window-size=1420,1080')
-            chrome_options.add_argument('--headless')
-            chrome_options.add_argument('--disable-gpu')
-            chrome_options.add_argument('--single-process')
-            chrome_options.binary_location = os.path.join(
-                                             os.path.dirname(os.path.abspath(__file__)),
-                                             'dependencies',
-                                             'Chromium.app',
-                                             'Contents',
-                                             'MacOS',
-                                             'Chromium'
-                                             )
-            driver = webdriver.Chrome(self.CHROMEDRIVER_PATH, chrome_options=chrome_options)
+            options = Options()
+            options.add_argument('--headless')
+            options.add_argument('window-size=1920x1080')
+            driver = webdriver.Chrome(self.CHROMEDRIVER_PATH, options=options)
+            # chrome_options = webdriver.ChromeOptions()
+            # chrome_options.add_argument('--no-sandbox')
+            # chrome_options.add_argument('--window-size=1420,1080')
+            # chrome_options.add_argument('--headless')
+            # chrome_options.add_argument('--disable-gpu')
+            # chrome_options.add_argument('--single-process')
+            # chrome_options.binary_location = os.path.join(
+            #                                  os.path.dirname(os.path.abspath(__file__)),
+            #                                  'dependencies',
+            #                                  'Chromium.app',
+            #                                  'Contents',
+            #                                  'MacOS',
+            #                                  'Chromium'
+            #                                  )
+            # driver = webdriver.Chrome(self.CHROMEDRIVER_PATH, chrome_options=chrome_options)
         else:
             driver = webdriver.Chrome(self.CHROMEDRIVER_PATH)
 
@@ -132,90 +133,15 @@ class Driver:
         logger = logging.getLogger('selenium.webdriver.remote.remote_connection')
         logger.setLevel(logging.WARNING)
 
-        try:
+        driver.get(self.URL)
 
-            # go to url
-            driver.get(self.URL)
-            self.closePopups(driver)
+        # inject cookie to bypass the new user bonus
+        utils.injectCookie(driver=driver,
+                           cookieValue=NO_NEW_USER_BONUS_COOKIE_VALUE,
+                           cookieName=NO_NEW_USER_BONUS_COOKIE_NAME)
 
-            # open settings tab for settings to change
-            try:
-                self.openSettingsMenu(driver)
-            except ElementClickInterceptedException:
-                logging.info('Something intercepted the clicking the button to open the Settings menu')
-                # if the setting button cannot be clicked there must be some
-                # some popups that are still open so we try to close them again
-                self.closePopups(driver)
-                # we do not catch the ElementClickInterceptedException the second
-                # time because something must be wrong
-                self.openSettingsMenu(driver)
-
-            # set up country
-            flagClass = ''
-            flagClass = self.setUpCountry(driver, country)
-
-            # set up currency
-            currencyCode = ''
-            currencyCode = self.setUpCurrency(driver, currency)
-
-            # inject cookie to bypass the new user bonus
-            utils.injectCookie(driver=driver,
-                               cookieValue=NO_NEW_USER_BONUS_COOKIE_VALUE,
-                               cookieName=NO_NEW_USER_BONUS_COOKIE_NAME)
-
-            # click save in the setttings menu
-            self.saveSettingsMenu(driver)
-
-            # explicitly wait until the settings menu changes to the desired
-            # country flag and currency
-
-            locator = (By.CLASS_NAME, 'currency')
-            text = currencyCode
-            try:
-                WebDriverWait(driver, 5).until(
-                    EC.text_to_be_present_in_element(
-                        locator,
-                        text
-                    )
-                )
-            except NoSuchElementException as e:
-                raise InvalidClassNameNavigationException(url=self.URL, className=locator[1], elementName='currency code element') \
-                from e
-            except TimeoutException as e:
-                if self.debug:
-                    utils.savePageSource(driver)
-                raise TimeoutException(f'"{text}" not present in element: {locator[1]}') \
-                from e
-
-            locator = (By.CLASS_NAME, 'ship-to')
-            attribute = 'class'
-            text = flagClass
-            try:
-                WebDriverWait(driver, 5).until(
-                    utils.text_to_be_present_in_child_element_attribute(
-                        locator,
-                        attribute,
-                        text
-                    )
-                )
-            except NoSuchElementException as e:
-                raise InvalidClassNameNavigationException(url=self.URL, className=locator[1], elementName='country flag') \
-                from e
-            except TimeoutException as e:
-                if self.debug:
-                    utils.savePageSource(driver)
-                raise TimeoutException(f"'{text}' not present in attribute: {attribute} of element's: {locator[1]} child") \
-                from e
-
-
-            # no need to close the settings menu because the page refreshes on save
-            #    self.closeSettingsMenu(driver)
-
-        except Exception as e:
-            # debug
-            utils.savePageSource(driver)
-            driver.quit()
-            raise e
+        # set up country and currency
+        self.setUpCountryAndCurrency(driver=driver, country=country, currency=currency)
 
         logging.info('Driver setup complete.')
 
@@ -250,6 +176,24 @@ class Driver:
             except ElementClickInterceptedException:
                 raise ElementClickInterceptedException(f'element with name {popup} and class {className} click intercepted.')
 
+    def setUpCountryAndCurrency (self, driver: ChromeWebdriver, country: str, currency: str) -> None:
+        """
+        Injects cookie with passed country and currency.
+
+        :param driver: driver to inject the cookie to
+        :param country: country to setup the cookie with
+        :param currency: currency to setup the cookie with
+        """
+
+        countryIsoCode = COUNTRY_ISO_CODE_DIR[country.lower()]
+        currencyIsoCode = currency[:3].upper()
+
+        cookieValue = COUNTRY_AND_CURRENCY_COOKIE_VALUE.format(currencyIsoCode, countryIsoCode)
+
+        utils.injectCookie(driver=driver,
+                           cookieValue=cookieValue,
+                           cookieName=COUNTRY_AND_CURRENCY_COOKIE_NAME,
+                           )
 
     def setUpCountry (self, driver: ChromeWebdriver, country: str) -> str:
         """

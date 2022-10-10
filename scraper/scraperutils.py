@@ -137,8 +137,6 @@ def injectCookie (driver: ChromeWebdriver, cookieValue: str, cookieName: str) ->
     :param cookieName: name of the cookie to be injected
     """
 
-    logging.info('Adding cookies to bypass the new user bonus...')
-
     cookie = driver.get_cookie(cookieName)
     if not cookie:
         cookie = {}

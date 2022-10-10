@@ -136,6 +136,7 @@ class Driver:
         driver.get(self.URL)
 
         # inject cookie to bypass the new user bonus
+        logging.info('Adding cookies to bypass the new user bonus...')
         utils.injectCookie(driver=driver,
                            cookieValue=NO_NEW_USER_BONUS_COOKIE_VALUE,
                            cookieName=NO_NEW_USER_BONUS_COOKIE_NAME)
@@ -189,6 +190,8 @@ class Driver:
         currencyIsoCode = currency[:3].upper()
 
         cookieValue = COUNTRY_AND_CURRENCY_COOKIE_VALUE.format(currencyIsoCode, countryIsoCode)
+
+        logging.info('Adding cookies for selected country and currency...')
 
         utils.injectCookie(driver=driver,
                            cookieValue=cookieValue,

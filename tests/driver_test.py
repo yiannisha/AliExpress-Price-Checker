@@ -63,8 +63,8 @@ class DriverTest (unittest.TestCase):
             'currency': 'USD'
         }
 
-        self.assertEqual(flag.get_attribute('class'), expected_values['flag'])
         self.assertEqual(currency.text, expected_values['currency'])
+        self.assertEqual(flag.get_attribute('class'), expected_values['flag'])
 
     def tearDown (self) -> None:
         """ Closes all drivers opened due to tests. """

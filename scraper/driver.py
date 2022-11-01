@@ -31,7 +31,8 @@ from selenium.common.exceptions import NoSuchAttributeException
 
 # constants
 from scraper.const import NO_NEW_USER_BONUS_COOKIE_VALUE, NO_NEW_USER_BONUS_COOKIE_NAME, \
-COUNTRY_AND_CURRENCY_COOKIE_NAME, COUNTRY_AND_CURRENCY_COOKIE_VALUE, COUNTRY_ISO_CODE_DIR
+COUNTRY_AND_CURRENCY_COOKIE_NAME, COUNTRY_AND_CURRENCY_COOKIE_VALUE, COUNTRY_ISO_CODE_DIR, \
+MAIN_COOKIE_DOMAIN, US_COUNTRY_AND_CURRENCY_COOKIE_VALUE, US_COOKIE_DOMAIN
 
 # typing
 from typing import Union
@@ -188,12 +189,31 @@ class Driver:
         countryIsoCode = COUNTRY_ISO_CODE_DIR[country.lower()]
         currencyIsoCode = currency[:3].upper()
 
+        # default cookie
         cookieValue = COUNTRY_AND_CURRENCY_COOKIE_VALUE.format(currencyIsoCode, countryIsoCode)
 
-        utils.injectCookie(driver=driver,
-                           cookieValue=cookieValue,
-                           cookieName=COUNTRY_AND_CURRENCY_COOKIE_NAME,
-                           )
+        utils.injectCookie(
+            driver=driver,
+            cookieValue=cookieValue,
+            cookieName=COUNTRY_AND_CURRENCY_COOKIE_NAME,
+            )
+
+        # when changing country to usa the currency value is ignored and the
+        # one that already was set up stays because of the new domain's cookies
+        # to get around that if we're moving to US then we add the us domain
+        # again with the currency that we want 
+        if countryIsoCode == 'US':
+
+            driver.refresh()
+
+            # extra cookie for the us marketplace
+            cookieValueUS = US_COUNTRY_AND_CURRENCY_COOKIE_VALUE.format(currencyIsoCode, countryIsoCode)
+
+            utils.injectCookie(
+                driver=driver,
+                cookieValue=cookieValueUS,
+                cookieName=COUNTRY_AND_CURRENCY_COOKIE_NAME,
+                )
 
     def setUpCountry (self, driver: ChromeWebdriver, country: str) -> str:
         """

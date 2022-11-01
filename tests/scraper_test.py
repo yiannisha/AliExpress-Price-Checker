@@ -28,7 +28,7 @@ class ScraperTest(unittest.TestCase):
 
     def setUp (self) -> None:
         """ Sets up a windowed Scraper to be used later. """
-        self.scraper = scraper.Scraper(country='united states', currency='usd', headless=False)
+        self.scraper = scraper.Scraper(country='united states', currency='eur', headless=True)
 
     @unittest.skip
     def test_emptyScraper (self) -> None:

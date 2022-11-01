@@ -54,20 +54,25 @@ class ScraperTest(unittest.TestCase):
         print(f'running test_scrapeURL using {scraper} scraper')
 
         expected_values = [
-            ('https://www.aliexpress.com/item/33052582900.html', True, 4.12, 3.66),
+            ('https://www.aliexpress.com/item/10000334245846.html', True, 11.0, 0),
+            ('https://www.aliexpress.com/item/1005002202123037.html', True, 0, 0),
+            ('https://www.aliexpress.com/item/32660648792.html', True, 10.8, 0),
+            ('https://www.aliexpress.com/item/4000999946541.html', True, 35.22, 0),
+            ('https://www.aliexpress.com/item/4000221687787.html', True, 2.78, 2.96),
+            ('https://www.aliexpress.com/item/33052582900.html', True, 3.97, 3.11),
             ('https://www.aliexpress.com/item/4000790011174.html', True, 0, 0),
-            ('https://www.aliexpress.com/item/1005003742432861.html', True, 26.32, 0),
-            ('https://www.aliexpress.com/item/1005003365147552.html', False, 12.75, 4.87),
-            ('https://www.aliexpress.com/item/1005003890863335.html', False, 17.76, 3.24),
-            ('https://www.aliexpress.com/item/1005004047047021.html', True, 0, 0),
-            ('https://www.aliexpress.com/item/1005003604897865.html', True, 4.34, 3.78)
+            ('https://www.aliexpress.com/item/1005003742432861.html', True, 18.32, 0),
+            ('https://www.aliexpress.com/item/1005003365147552.html', False, 0, 0),
+            ('https://www.aliexpress.com/item/1005003890863335.html', False, 16.46, 0),
+            ('https://www.aliexpress.com/item/1005004047047021.html', True, 18.89, 0),
+            ('https://www.aliexpress.com/item/1005003604897865.html', True, 4.69, 2.95)
         ]
 
         for url, tracking, itemPrice, shipPrice in expected_values:
             data: Tuple[float, float]
             data = scraper.scrapeURL(url, tracking)
-            self.assertEqual(data[0], itemPrice)
-            self.assertEqual(data[1], shipPrice)
+            self.assertEqual(data[0], itemPrice, url)
+            self.assertEqual(data[1], shipPrice, url)
 
     def tearDown (self) -> None:
         """ Closes running Scrapers """

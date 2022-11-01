@@ -146,6 +146,44 @@ def injectCookie (driver: ChromeWebdriver, cookieValue: str, cookieName: str) ->
 
     driver.add_cookie(cookie)
 
+def acceptCookies (driver: ChromeWebdriver, persist: bool = False) -> None:
+    """
+    Tries to find and close the global cookie banner by accepting cookies.
+
+    :param driver: driver with currently open page that has a cookie banner
+    :param persit: set to True to throw an exception if a cookie banner is not found
+    """
+
+    logging.info('Closing cookie banner...')
+
+    cookieBannerClassName = 'global-gdpr-container'
+    acceptButtonClassName = 'btn-accept'
+
+    try:
+        cookieBanner = getElement(
+            parent=driver,
+            locatorMethod=By.CLASS_NAME,
+            locatorValue=cookieBannerClassName,
+            url=driver.current_url,
+            elementName='global cookie banner'
+        )
+    except InvalidClassNameNavigationException as e:
+        if persist:
+            raise e
+        else:
+            # no reason to keep going if there is no cookie banner
+            return
+
+    acceptButton = getElement(
+        parent=cookieBanner,
+        locatorMethod=By.CLASS_NAME,
+        locatorValue=acceptButtonClassName,
+        url=driver.current_url,
+        elementName='cookie banner accept button'
+    )
+
+    acceptButton.click()
+
 class text_to_be_present_in_child_element_attribute (object):
     """
     Custom expected condition for WebDriverWait.

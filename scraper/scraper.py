@@ -70,6 +70,9 @@ class Scraper(driver.Driver):
             if not self.checkAvailability():
                 return (0, 0)
 
+            # accept cookies so that they don't intercept in later clicks
+            utils.acceptCookies(self.driver)
+
             # select all first options (color, size etc.)
             self.selectFirstOptions(url)
 
@@ -131,7 +134,7 @@ class Scraper(driver.Driver):
 
         # if this element exists then the item is not at all available
         try:
-            unavailability_class = 'next-message-content'
+            unavailability_class = 'customs-message-wrap'
             utils.getElement(
                 parent=self.driver,
                 locatorMethod=By.CLASS_NAME,

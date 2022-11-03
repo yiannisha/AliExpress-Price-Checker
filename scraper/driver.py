@@ -136,14 +136,14 @@ class Driver:
 
         driver.get(self.URL)
 
+        # set up country and currency
+        self.setUpCountryAndCurrency(driver=driver, country=country, currency=currency)
+
         # inject cookie to bypass the new user bonus
         logging.info('Adding cookies to bypass the new user bonus...')
         utils.injectCookie(driver=driver,
                            cookieValue=NO_NEW_USER_BONUS_COOKIE_VALUE,
                            cookieName=NO_NEW_USER_BONUS_COOKIE_NAME)
-
-        # set up country and currency
-        self.setUpCountryAndCurrency(driver=driver, country=country, currency=currency)
 
         logging.info('Driver setup complete.')
 
